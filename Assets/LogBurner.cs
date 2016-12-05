@@ -11,7 +11,19 @@ public class LogBurner : MonoBehaviour {
     MeshFilter meshFilter;
     BurnSimNode[] burnSimMap;
 
+    new Rigidbody rigidbody;
+    new MeshCollider collider;
+
     class BurnSimNode {
+        float _fuel;
+        public float fuel {
+            get {
+                return _fuel;
+            }
+            set {
+                _fuel = Mathf.Clamp01(value);
+            }
+        }
         float _heat;
         public float heat{
             get{
@@ -21,10 +33,18 @@ public class LogBurner : MonoBehaviour {
                 _heat = Mathf.Clamp01(value);
             }
         }
+        Vector3 _originalPosition;
+        public Vector3 position {
+            get {
+                return _originalPosition * fuel;
+            }
+        }
         public List<BurnSimNode> connections { get; private set; }
-        public BurnSimNode() {
+        public BurnSimNode(Vector3 vertexPosition) {
             heat = 0;
+            fuel = 1;
             connections = new List<BurnSimNode>();
+            _originalPosition = vertexPosition;
         }
         public void addConnection(BurnSimNode c) {
             if (!connections.Contains(c)) connections.Add(c);
@@ -37,6 +57,8 @@ public class LogBurner : MonoBehaviour {
                 deltaHeat += connection.heat / 100f;
             }
             deltaHeat *= Random.Range(-0.25f, 1f);
+
+            fuel -= heat / 100f;
         }
         float deltaHeat;
         public void consume() {
@@ -46,7 +68,11 @@ public class LogBurner : MonoBehaviour {
     
 	void Start() {
         meshFilter = GetComponent<MeshFilter>();
-        mesh = meshFilter.sharedMesh;
+        mesh = meshFilter.mesh;
+        mesh.MarkDynamic();
+
+        rigidbody = GetComponent<Rigidbody>();
+        collider = GetComponent<MeshCollider>();
 
         StartCoroutine(simulateBurn_coroutine());
     }
@@ -54,17 +80,17 @@ public class LogBurner : MonoBehaviour {
     IEnumerator simulateBurn_coroutine() {
         var wait = new WaitForSeconds(updateTime);
         initializeBurnSim();
-        while(true) {
-            simulateBurn();
+        while(simulateBurn()) {
             yield return wait;
         }
+        Destroy(gameObject);
     }
 
     void initializeBurnSim() {
         var verts = mesh.vertices;
-        burnSimMap = new BurnSimNode[mesh.vertices.Length];
+        burnSimMap = new BurnSimNode[verts.Length];
         for(int i = 0; i < burnSimMap.Length; i++) {
-            burnSimMap[i] = new BurnSimNode();
+            burnSimMap[i] = new BurnSimNode(verts[i]);
         }
 
         var triangles = mesh.triangles;
@@ -80,20 +106,31 @@ public class LogBurner : MonoBehaviour {
         }
     }
 
-    void simulateBurn() {
+    bool simulateBurn() {
         foreach(BurnSimNode node in burnSimMap) {
             node.calculate();
             node.consume();
         }
-    }
 
-	void Update() {
-        var colors = new Color[burnSimMap.Length];
-        for(int i = 0; i < burnSimMap.Length; i++) {
+        var nodeCount = burnSimMap.Length;
+        var verts = new Vector3[nodeCount];
+        var colors = new Color[nodeCount];
+        float fuel = 0f;
+
+        for (int i = 0; i < nodeCount; i++) {
             colors[i] = gradient.Evaluate(burnSimMap[i].heat);
+            verts[i] = burnSimMap[i].position;
+            fuel += burnSimMap[i].fuel;
         }
+
         mesh.colors = colors;
-	}
+        mesh.vertices = verts;
+
+        collider.sharedMesh = mesh;
+        rigidbody.WakeUp();
+
+        return fuel > 1f;
+    }
 
     public void OnCollisionEnter(Collision collision) {
         if (collision.collider.name == "coal") {
