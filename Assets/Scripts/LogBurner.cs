@@ -20,6 +20,8 @@ public class LogBurner : MonoBehaviour, HeatSource {
     float fuel;
     float maxfuel;
 
+    Flame flame;
+
 	void Start() {
         meshFilter = GetComponent<MeshFilter>();
         mesh = meshFilter.mesh;
@@ -27,18 +29,18 @@ public class LogBurner : MonoBehaviour, HeatSource {
 
         rigidbody = GetComponent<Rigidbody>();
         collider = GetComponent<MeshCollider>();
-        lineRenderer = GetComponent<LineRenderer>();
-        flamePositions = new Vector3[10];
-        lineRenderer.SetVertexCount(flamePositions.Length);
+
+        flame = GetComponentInChildren<Flame>();
 
         StartCoroutine(simulateBurn_coroutine());
     }
 	
     IEnumerator simulateBurn_coroutine() {
-        var wait = new WaitForSeconds(updateTime);
         initializeBurnSim();
         while(simulateBurn()) {
-            yield return wait;
+            yield return null;
+            flame.updateSimData(burnSimMap, fuel / maxfuel);
+            yield return new WaitForSeconds(updateTime);
         }
         Destroy(gameObject);
     }
@@ -116,35 +118,22 @@ public class LogBurner : MonoBehaviour, HeatSource {
                 var heat = heatSource.getHeat(contactPoint.point);
                 var closestNode = closestNodeTo(contactPoint.point);
                 closestNode.addHeat(heat);
-                if ((heat > 0.15f) && (Random.Range(0f,1f) > 0.95f)) {
+                if ((heat > 0.15f) && (Random.Range(0f,1f) > 0.75f)) {
                     var sparkForceDir = Vector3.Cross(contactPoint.normal, Random.onUnitSphere);
-                    SparkSpawner.Spawn(contactPoint.point + sparkForceDir, sparkForceDir * heat * Random.Range(5f,15f));
+                    SparkSpawner.Spawn(contactPoint.point + (sparkForceDir * 0.5f), sparkForceDir * heat * Random.Range(1f, 5f));
                 }
             }
         }
     }
 
+
     void Update() {
-        float[] flameHeights = new float[10];
-        
-        for (int i = 0; i < burnSimMap.Length; i++) {
-            int f = Mathf.FloorToInt(i / (float)burnSimMap.Length * 10f);
-            flameHeights[f] += burnSimMap[i].heat / 2f;
-        }
-
-        for(int i = 0; i < flamePositions.Length; i++) {
-            flamePositions[i] = Vector3.Lerp(Vector3.left, Vector3.right, i / (float)flamePositions.Length) * (fuel / maxfuel) * 4;
-            flamePositions[i] += transform.InverseTransformDirection(Vector3.up) * flameHeights[i];
-        }
-
-        lineRenderer.SetPositions(flamePositions);
+        flame.update(burnSimMap, fuel/maxfuel);
     }
 
 
 
-
-
-    class BurnSimNode {
+    public class BurnSimNode {
         float _fuel;
         public float fuel {
             get {
@@ -157,14 +146,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
         float _heat;
         public float heat {
             get {
-                if(fuel == 0f) {
-                    return 0f;
-                } else if(fuel < 0.1f) {
-                    return _heat * 0.15f;
-                } else if (fuel < 0.25) {
-                    return _heat * 0.5f;
-                } 
-                return _heat;
+                return _heat * fuel;
             }
             private set {
                 _heat = Mathf.Clamp01(value);
@@ -188,7 +170,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
             if (!connections.Contains(c)) connections.Add(c);
         }
         public void addHeat(float h) {
-            heat += h;
+            heat = _heat + h;
         }
         public void calculate() {
             foreach (BurnSimNode connection in connections) {
@@ -196,12 +178,12 @@ public class LogBurner : MonoBehaviour, HeatSource {
             }
             deltaHeat *= Random.Range(-0.25f, 1f);
 
-            fuel -= heat / 100f;
+            fuel -= _heat / 100f;
             _position = _originalPosition * fuel;
         }
         float deltaHeat;
         public void consume() {
-            heat += deltaHeat;
+            heat = _heat + deltaHeat;
         }
     }
 }
