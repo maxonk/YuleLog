@@ -24,20 +24,18 @@ public class LogSpawner : MonoBehaviour {
 
     public Transform protoLog;
 
-    //List<LogBurner> logs;
-
-	void Awake () {
+    void Awake() {
         _instance = this;
-        //logs = new List<LogBurner>();
-	}
+    }
 
     void Update() {
-        if (Input.GetKeyDown(KeyCode.Space)) spawn();
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(1)) {
+            spawn();
+        }
     }
 
     void spawn() {
-        var log = Instantiate(protoLog.GetComponent<LogBurner>());
-        //logs.Add(log);
+        var log = Instantiate(protoLog);
         log.transform.position = transform.position;
         log.transform.rotation = Random.rotation;
     }
