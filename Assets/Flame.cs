@@ -58,13 +58,17 @@ public class Flame : MonoBehaviour {
 
 
         float maxHeight = 0f;
+        Vector3 leftMost = Vector3.zero, rightMost = Vector3.zero;
         for (int i = 0; i < VERTEX_COUNT - 2; i++) {
             flamePositions[i + 1] = Vector3.Lerp(Vector3.left, Vector3.right, i / (float)(VERTEX_COUNT - 2)) * totalFuelPct * 4;
             if (flameHeights[i] > maxHeight) maxHeight = flameHeights[i];
+            //also get left and right points here
+            if (burnSimMap[i].position.x < leftMost.x) leftMost = burnSimMap[i].position;
+            if (burnSimMap[i].position.x > rightMost.x) rightMost = burnSimMap[i].position;
         }
-
-        flamePositions[0] = Vector3.left * totalFuelPct * 3;
-        flamePositions[VERTEX_COUNT - 1] = Vector3.right * totalFuelPct * 3;
+        Debug.Log(rightMost);//this aint workin
+        flamePositions[0] = leftMost;
+        flamePositions[VERTEX_COUNT - 1] = rightMost;
         
         for (int i = 0; i < VERTEX_COUNT - 2; i++) {
             flamePositions[i + 1] = Vector3.Lerp(Vector3.left, Vector3.right, i / (float)(VERTEX_COUNT - 2)) * totalFuelPct * 4;
