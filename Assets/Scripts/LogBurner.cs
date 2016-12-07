@@ -174,9 +174,9 @@ public class LogBurner : MonoBehaviour, HeatSource {
         }
         public void calculate() {
             foreach (BurnSimNode connection in connections) {
-                deltaHeat += connection.heat / 100f;
+                deltaHeat += connection.heat / 200f;
             }
-            deltaHeat *= Random.Range(-0.25f, 1f);
+            deltaHeat *= Random.Range(-0.35f, 1f);
 
             fuel -= _heat / 100f;
             _position = _originalPosition * fuel;
