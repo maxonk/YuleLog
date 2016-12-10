@@ -1,14 +1,21 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
 public class LogBurner : MonoBehaviour, HeatSource {
+    
+    public static float SimUpdateRate = 2f;
+    float flameUpdateDelay {
+        get {
+            return Mathf.Min(SimUpdateRate / 2f, 0.1f);
+        }
+    }
 
-    public float updateTime;
     public Gradient gradient;
 
-    Mesh mesh;
-    MeshFilter meshFilter;
+
+    LogRenderer logRenderer;
     BurnSimNode[] burnSimMap;
 
     LineRenderer lineRenderer;
@@ -22,10 +29,11 @@ public class LogBurner : MonoBehaviour, HeatSource {
 
     Flame flame;
 
+    public float scaleModifier = 1f;
+
 	void Start() {
-        meshFilter = GetComponent<MeshFilter>();
-        mesh = meshFilter.mesh;
-        mesh.MarkDynamic();
+        logRenderer = GetComponentInChildren<LogRenderer>();
+        logRenderer.setup(this);
 
         rigidbody = GetComponent<Rigidbody>();
         collider = GetComponent<MeshCollider>();
@@ -37,22 +45,24 @@ public class LogBurner : MonoBehaviour, HeatSource {
 	
     IEnumerator simulateBurn_coroutine() {
         initializeBurnSim();
-        while(simulateBurn()) {
-            yield return null;
-            flame.updateSimData(burnSimMap, fuel / maxfuel);
-            yield return new WaitForSeconds(updateTime);
+        while(simulateBurn(SimUpdateRate)) {
+            yield return new WaitForSeconds(flameUpdateDelay);
+            flame.updateSimData(burnSimMap, fuel / maxfuel, SimUpdateRate);
+            yield return new WaitForSeconds(SimUpdateRate - flameUpdateDelay);
         }
         Destroy(gameObject);
     }
 
     void initializeBurnSim() {
-        var verts = mesh.vertices;
-        burnSimMap = new BurnSimNode[verts.Length];
+        var mesh = logRenderer.mesh;
+        var vertices = mesh.vertices;
+        var scale = LogSpawner.scale(scaleModifier);
+        burnSimMap = new BurnSimNode[vertices.Length];
         for(int i = 0; i < burnSimMap.Length; i++) {
-            burnSimMap[i] = new BurnSimNode(verts[i]);
+            burnSimMap[i] = new BurnSimNode(Vector3.Scale(vertices[i], scale), this);
         }
 
-        maxfuel = verts.Length;
+        maxfuel = vertices.Length;
 
         var triangles = mesh.triangles;
         for(int i = 0; i < triangles.Length; i += 3) {
@@ -67,27 +77,20 @@ public class LogBurner : MonoBehaviour, HeatSource {
         }
     }
 
-    bool simulateBurn() {
+    bool simulateBurn(float updateTime) {
         foreach(BurnSimNode node in burnSimMap) {
             node.calculate();
             node.consume();
         }
-
-        var nodeCount = burnSimMap.Length;
-        var verts = new Vector3[nodeCount];
-        var colors = new Color[nodeCount];
+        
         fuel = 0f;
-
-        for (int i = 0; i < nodeCount; i++) {
-            colors[i] = gradient.Evaluate(burnSimMap[i].heat);
-            verts[i] = burnSimMap[i].position;
+        for (int i = 0; i < burnSimMap.Length; i++) {
             fuel += burnSimMap[i].fuel;
         }
 
-        mesh.colors = colors;
-        mesh.vertices = verts;
+        logRenderer.updateFromSim(burnSimMap, updateTime);
 
-        collider.sharedMesh = mesh;
+        collider.sharedMesh = logRenderer.mesh;
         rigidbody.WakeUp();
 
         return fuel > 1f;
@@ -118,22 +121,53 @@ public class LogBurner : MonoBehaviour, HeatSource {
                 var heat = heatSource.getHeat(contactPoint.point);
                 var closestNode = closestNodeTo(contactPoint.point);
                 closestNode.addHeat(heat);
-                if ((heat > 0.15f) && (Random.Range(0f,1f) > 0.75f)) {
-                    var sparkForceDir = Vector3.Cross(contactPoint.normal, Random.onUnitSphere);
-                    SparkSpawner.Spawn(contactPoint.point + (sparkForceDir * 0.5f), sparkForceDir * heat * Random.Range(1f, 5f));
+                if ((heat > 0.15f) && (UnityEngine.Random.Range(0f,1f) > 0.75f)) {
+                    var sparkForceDir = Vector3.Cross(contactPoint.normal, UnityEngine.Random.onUnitSphere);
+                    SparkSpawner.Spawn(contactPoint.point + (sparkForceDir * 0.5f), sparkForceDir * heat * UnityEngine.Random.Range(1f, 5f));
                 }
             }
         }
     }
 
-
     void Update() {
+        logRenderer.update();
         flame.update(burnSimMap, fuel/maxfuel);
     }
 
+    public AnimationCurve scaleToHeatSimCurve;
+    float _heatScaleModifier;
+    float heatScaleModifier {
+        get {
+            if (_heatScaleModifier == 0f) {
+                _heatScaleModifier = scaleToHeatSimCurve.Evaluate(scaleModifier);
+            }
+            return _heatScaleModifier;
+        }
+    }
+    public AnimationCurve scaleToHeatTransferSimCurve;
+    float _heatTransferModifier;
+    float heatTransferModifier {
+        get {
+            if (_heatTransferModifier == 0f) {
+                _heatTransferModifier = scaleToHeatTransferSimCurve.Evaluate(scaleModifier);
+            }
+            return _heatTransferModifier;
+        }
+    }
+    public AnimationCurve scaleToFuelConsumptionSimCurve;
+    float _fuelConsumptionModifier;
+    float fuelConsumptionModifier {
+        get {
+            if (_fuelConsumptionModifier == 0f) {
+                _fuelConsumptionModifier = scaleToFuelConsumptionSimCurve.Evaluate(scaleModifier);
+            }
+            return _fuelConsumptionModifier;
+        }
+    }
 
 
     public class BurnSimNode {
+        LogBurner _log;
         float _fuel;
         public float fuel {
             get {
@@ -146,7 +180,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
         float _heat;
         public float heat {
             get {
-                return _heat * fuel;
+                return _heat * fuel * _log.heatScaleModifier;
             }
             private set {
                 _heat = Mathf.Clamp01(value);
@@ -160,11 +194,12 @@ public class LogBurner : MonoBehaviour, HeatSource {
             }
         }
         public List<BurnSimNode> connections { get; private set; }
-        public BurnSimNode(Vector3 vertexPosition) {
+        public BurnSimNode(Vector3 vertexPosition, LogBurner log) {
             heat = 0;
             fuel = 1;
             connections = new List<BurnSimNode>();
             _originalPosition = vertexPosition;
+            _log = log;
         }
         public void addConnection(BurnSimNode c) {
             if (!connections.Contains(c)) connections.Add(c);
@@ -174,11 +209,11 @@ public class LogBurner : MonoBehaviour, HeatSource {
         }
         public void calculate() {
             foreach (BurnSimNode connection in connections) {
-                deltaHeat += connection.heat / 200f;
+                deltaHeat += connection.heat * _log.heatTransferModifier;
             }
-            deltaHeat *= Random.Range(-0.35f, 1f);
+            deltaHeat *= UnityEngine.Random.Range(-0.35f, 1f);
 
-            fuel -= _heat / 100f;
+            fuel -= _heat * _log.fuelConsumptionModifier;
             _position = _originalPosition * fuel;
         }
         float deltaHeat;

@@ -26,15 +26,16 @@ public class ObjectMover : MonoBehaviour {
     }
 
 	void Update () {
+
         var mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        if (Input.GetMouseButtonDown(0)) {
+        if (!InputManager.Paused && Input.GetMouseButtonDown(0)) {
             RaycastHit hitInfo;
             if(Physics.Raycast(mouseRay, out hitInfo, 25, moveableObjectMask)) {
-                grab(hitInfo.collider.GetComponent<MoveableObject>());
+                grab(hitInfo.collider.attachedRigidbody.GetComponent<MoveableObject>());
             }
         }
-        if (Input.GetMouseButtonUp(0)) {
+        if (InputManager.Paused || Input.GetMouseButtonUp(0)) {
             release();
         }
 

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: dbf99c5efe46335459c629acb660a9a3
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - guiSpeed: {instanceID: 0}
+  - pauseText: {instanceID: 0}
+  - resetText: {instanceID: 0}
+  - bulletPrefab: {fileID: 100000, guid: d3161c4734ccdf8468e80299c64d02c9, type: 2}
+  - guiSkin: {fileID: 11400000, guid: c9133c91cd117417d0000cf8a220b639, type: 2}
+  - pewpew: {fileID: 8300000, guid: fc887202834735242b3b9d2800a8e030, type: 1}
+  - backgroundMusic: {fileID: 8300000, guid: 3335cfa8764bd314e801ccafd2ce50cb, type: 1}
+  executionOrder: 0
+  icon: {instanceID: 0}
