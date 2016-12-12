@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class ObjectMover : MonoBehaviour {
@@ -26,16 +27,15 @@ public class ObjectMover : MonoBehaviour {
     }
 
 	void Update () {
+        var mouseRay = Camera.main.ScreenPointToRay(YuleCursor.position);
 
-        var mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        if (!InputManager.Paused && Input.GetMouseButtonDown(0)) {
+        if (!InputManager.Paused && (Input.GetMouseButtonDown(0) || cInput.GetKeyDown("Grab"))) {
             RaycastHit hitInfo;
             if(Physics.Raycast(mouseRay, out hitInfo, 25, moveableObjectMask)) {
                 grab(hitInfo.collider.attachedRigidbody.GetComponent<MoveableObject>());
             }
         }
-        if (InputManager.Paused || Input.GetMouseButtonUp(0)) {
+        if (InputManager.Paused || (Input.GetMouseButtonUp(0) || cInput.GetKeyUp("Grab"))) {
             release();
         }
 

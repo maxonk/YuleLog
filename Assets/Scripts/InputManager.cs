@@ -19,7 +19,7 @@ public class InputManager : MonoBehaviour {
     }
     //---
 
-    public Canvas mainMenuCanvas;
+    public CanvasRenderer mainMenuCanvas;
     public GUISkin guiSkin;
     public Color menuColor = Color.black;
 
@@ -47,17 +47,28 @@ public class InputManager : MonoBehaviour {
         cInput.AddModifier(KeyCode.RightControl);
 
         // setting up the default inputkeys...
-        cInput.SetKey("Scale Log Up", "Mouse Wheel Up", "UpArrow");
-        cInput.SetKey("Scale Log Down", "Mouse Wheel Down", "DownArrow");
-        cInput.SetKey("Get Log", "Mouse1", "Space");
+        cInput.SetKey("Move Cursor Up", "Joy1 Axis 2-");
+        cInput.SetKey("Move Cursor Down", "Joy1 Axis 2+");
+        cInput.SetKey("Move Cursor Left", "Joy1 Axis 1-");
+        cInput.SetKey("Move Cursor Right", "Joy1 Axis 1+");
+        cInput.SetKey("Grab", "JoystickButton0", "Joystick1Button0");
+        cInput.SetKey("Scale Log Up", "Mouse Wheel Up", "UpArrow", "Joy1 Axis 7+");
+        cInput.SetKey("Scale Log Down", "Mouse Wheel Down", "DownArrow", "Joy1 Axis 7-");
+        cInput.SetKey("Get Log", "Mouse1", "Space", "Joy1 Axis 9+");
 
         // we define an axis like this:
         cInput.SetAxis("Scale Log", "Scale Log Down", "Scale Log Up", 0.5f); // sets the 'Pause' input to "P" - notice we didn't set up a secondary input-this will be defaulted to 'None'
+        cInput.SetAxis("Move Cursor Vertical", "Move Cursor Down", "Move Cursor Up", 3f, 3f, 0.001f);
+        cInput.SetAxis("Move Cursor Horizontal", "Move Cursor Left", "Move Cursor Right", 3f, 3f, 0.001f);
     }
 
     public void ExitButtonClicked() {
         mainMenuCanvas.gameObject.SetActive(false);
         if (cGUI.showingInputGUI) cGUI.ToggleGUI();
+    }
+
+    public void ExitGame() {
+        Application.Quit();
     }
 
     public void InputSettingsButtonClicked() {
