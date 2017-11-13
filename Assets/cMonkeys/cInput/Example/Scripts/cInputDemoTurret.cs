@@ -15,7 +15,7 @@ public class cInputDemoTurret : MonoBehaviour {
 	}
 
 	void Update() {
-		if (target && transform.FindChild("Box10").GetComponent<Renderer>().isVisible) {
+		if (target && transform.Find("Box10").GetComponent<Renderer>().isVisible) {
 			Quaternion rotate = Quaternion.LookRotation(target.position - transform.position);
 			transform.rotation = Quaternion.Slerp(transform.rotation, rotate, Time.deltaTime * damping);
 			transform.eulerAngles = new Vector3(0, transform.eulerAngles.y, 0);

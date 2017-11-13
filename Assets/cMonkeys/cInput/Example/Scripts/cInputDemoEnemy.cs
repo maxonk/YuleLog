@@ -11,8 +11,8 @@ public class cInputDemoEnemy : MonoBehaviour {
 	private Transform _turret;
 
 	void Start() {
-		_mesh = transform.FindChild("Mesh");
-		_turret = transform.FindChild("Turret");
+		_mesh = transform.Find("Mesh");
+		_turret = transform.Find("Turret");
 	}
 
 	void Update() {

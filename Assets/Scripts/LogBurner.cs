@@ -41,6 +41,21 @@ public class LogBurner : MonoBehaviour, HeatSource {
         flame = GetComponentInChildren<Flame>();
 
         StartCoroutine(simulateBurn_coroutine());
+        StartCoroutine(generateHeatPoints_coroutine());
+    }
+
+    IEnumerator generateHeatPoints_coroutine() {
+        List<Vector3> heatPoints = new List<Vector3>();
+        while (isActiveAndEnabled) {
+            foreach (BurnSimNode node in burnSimMap) {
+                if (node.heat > UnityEngine.Random.Range(0f, 1f)) {
+                    heatPoints.Add(transform.TransformPoint(node.position));
+                }
+            }
+            HeatVis.submitHeatPoints(heatPoints);
+            yield return new WaitForSeconds(0.01f);
+            heatPoints.Clear();
+        }
     }
 	
     IEnumerator simulateBurn_coroutine() {
