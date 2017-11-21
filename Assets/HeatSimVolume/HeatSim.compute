@@ -1,0 +1,76 @@
+#pragma kernel simulate
+#pragma kernel updateData
+#pragma kernel testData
+
+RWTexture3D<float> _HeatSimVolume, _HeatSimVolumeLast; //512
+RWStructuredBuffer<float4> newPoints; //length 512
+float _Time;
+
+[numthreads(32,1,32)]
+void simulate(uint3 id : SV_DispatchThreadID) {
+    //get the points from newPoints we might care about
+    float newHeat[128];
+    for(int i = 0; i < 128; i++) newHeat[i] = 0; //height of volume
+    float distToP, pInfluence;
+    int floorY;
+    for(i = 0; i < 512; i++) { //length of newpoints
+        distToP = distance(newPoints[i].xz, id.xz);
+        pInfluence = saturate(1 - distToP);
+        floorY = floor(newPoints[i].y);
+        newHeat[floorY] = pInfluence * frac(newPoints[i].y);
+        newHeat[floorY + 1] = pInfluence * (1 - frac(newPoints[i].y));
+    } 
+    
+    //compute _HeatSimVolume from _HeatSimVolumeLast neighbors
+    for (int y = 127; y > 0; y--) { //skip edges
+            int3 cellIndex = int3(id.x, y, id.z);
+            /*
+            _HeatSimVolume[cellIndex] = _HeatSimVolumeLast[cellIndex] * 0.1f; //lose energy
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(-1, 0, 0)] * 0.2; //adjacent
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(1, 0, 0)] * 0.2; 
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(0, 0, -1)] * 0.2; 
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(0, 0, 1)] * 0.2;
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(0, -1, 0)] * 0.1; //below
+            */
+            _HeatSimVolume[cellIndex] = _HeatSimVolumeLast[cellIndex] * 0.175;
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(4 * frac(sin(_Time) * 437558.5453), 4 * frac(sin(_Time) * 992999.2), 4 * frac(sin(_Time) * 1000000223))] * 0.35; 
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(4 * frac(sin(_Time) * 437258.5453),  4 * frac(sin(_Time) * 99994449.2), 4 * frac(sin(_Time) * 10010000))] * 0.35; 
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(4 * frac(sin(_Time) * 4371158.5453), 4 * frac(sin(_Time) * 99999.2), 4 * frac(sin(_Time) * 1000000))] * 0.35; 
+            _HeatSimVolume[cellIndex] += _HeatSimVolumeLast[cellIndex + int3(4 * frac(sin(_Time) * 43333758.5453), 4 * frac(sin(_Time) * 1999979.2), 4 * frac(sin(_Time) * 102200000))] * 0.35; 
+            //new heat from outside simulation
+            _HeatSimVolume[cellIndex] += newHeat[y]; 
+        }    
+}
+
+ 
+
+[numthreads(32, 1, 32)]
+void updateData(uint3 id : SV_DispatchThreadID) {
+    for (int y = 0; y < 128; y++) { 
+        int3 cellIndex = int3(id.x, y, id.z);
+        //  float3 data = _HeatSimVolume[cellIndex];
+        //  if(min(min(cellIndex.x, cellIndex.y), cellIndex.z) <= 0) data = 0;
+        //  if(max(max(cellIndex.x, cellIndex.y), cellIndex.z) >= 127) data = 0;
+        _HeatSimVolumeLast[cellIndex] = _HeatSimVolume[cellIndex];
+    }
+} 
+
+
+[numthreads(32,1,32)]
+void testData(uint3 id : SV_DispatchThreadID) {
+    for (int y = 0; y < 25; y++) { //do this with 32 dispatches instead probably..
+        int3 cellIndex = int3(id.x, y, id.z);
+        float data = //id.z / 512.0;
+            min(
+                max(pow(1 - (abs(256 - cellIndex.z) / 256.0), 4), 0),
+                max(pow(1 - (abs(256 - cellIndex.x) / 256.0), 4), 0)
+            )
+            * max((50 - cellIndex.y) / 25.0, 0); //test obv
+
+        if(min(min(cellIndex.x, cellIndex.y), cellIndex.z) <= 0) data = 0;
+        if(max(max(cellIndex.x, cellIndex.y), cellIndex.z) >= 511) data = 0;
+        _HeatSimVolume[cellIndex] = data;
+        _HeatSimVolumeLast[cellIndex] = data;
+    }
+}
+

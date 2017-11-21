@@ -48,11 +48,11 @@ public class LogBurner : MonoBehaviour, HeatSource {
         List<Vector3> heatPoints = new List<Vector3>();
         while (isActiveAndEnabled) {
             foreach (BurnSimNode node in burnSimMap) {
-                if (node.heat > UnityEngine.Random.Range(0f, 1f)) {
+                if (node.heat > UnityEngine.Random.Range(0f, 0.5f)) {
                     heatPoints.Add(transform.TransformPoint(node.position));
                 }
             }
-            HeatVis.submitHeatPoints(heatPoints);
+            HeatVis.SubmitHeatPoints(heatPoints);
             yield return new WaitForSeconds(0.01f);
             heatPoints.Clear();
         }
