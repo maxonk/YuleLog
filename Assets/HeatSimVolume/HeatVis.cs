@@ -22,24 +22,27 @@ public class HeatVis : MonoBehaviour {
     
     [SerializeField] ComputeShader heatSimComputeShader;
     [SerializeField] Material visualizationMaterial;
-    [SerializeField] RenderTexture heatSimVolume, heatSimVolumeLastFrame;
+
+    [SerializeField] RenderTexture heatSimVolume1, heatSimVolume2;
+    bool vol12toggle = false;
 
     ComputeBuffer newPointsBuffer, heatMapBuffer;
 
-    int _simulateKernel, _updateDataKernel, _testDataKernel;
+    int _simulateKernel, _testDataKernel;
 
     static Vector4[] points;
-    static int pIndex;
 
     Vector3[] frustumNear, frustumFar;
     Vector4[] frustumNearV4, frustumFarV4;
 
     RenderTexture generate3DRenderTexture() {
-        var ret = new RenderTexture(512, 128, 0, RenderTextureFormat.RFloat);
+        var ret = new RenderTexture(512, 128, 0, RenderTextureFormat.ARGB32);
         ret.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
-        ret.filterMode = FilterMode.Bilinear;
-        ret.wrapMode = TextureWrapMode.Clamp;
         ret.volumeDepth = 512;
+        ret.wrapMode = TextureWrapMode.Clamp;
+        ret.useMipMap = true;
+        ret.autoGenerateMips = true;
+        ret.filterMode = FilterMode.Trilinear;
         ret.enableRandomWrite = true;
         ret.Create();
         return ret;
@@ -53,19 +56,16 @@ public class HeatVis : MonoBehaviour {
         OnFrustumMoved();
 
         _simulateKernel = heatSimComputeShader.FindKernel("simulate");
-        _updateDataKernel = heatSimComputeShader.FindKernel("updateData");
         _testDataKernel = heatSimComputeShader.FindKernel("testData");
 
-        heatSimVolume = generate3DRenderTexture();
-        heatSimComputeShader.SetTexture(_simulateKernel, "_HeatSimVolume", heatSimVolume);
-        heatSimComputeShader.SetTexture(_updateDataKernel, "_HeatSimVolume", heatSimVolume);
-        heatSimComputeShader.SetTexture(_testDataKernel, "_HeatSimVolume", heatSimVolume);
-        Shader.SetGlobalTexture("_HeatSimVolume", heatSimVolume);
+        heatSimVolume1 = generate3DRenderTexture();
+        heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolume", heatSimVolume1);
+        heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", heatSimVolume1);
+        Shader.SetGlobalTexture("_HeatSimVolume", heatSimVolume1);
 
-        heatSimVolumeLastFrame = generate3DRenderTexture();
-        heatSimComputeShader.SetTexture(_simulateKernel, "_HeatSimVolumeLast", heatSimVolumeLastFrame);
-        heatSimComputeShader.SetTexture(_updateDataKernel, "_HeatSimVolumeLast", heatSimVolumeLastFrame);
-        heatSimComputeShader.SetTexture(_testDataKernel, "_HeatSimVolumeLast", heatSimVolumeLastFrame);
+        heatSimVolume2 = generate3DRenderTexture();
+        heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", heatSimVolume2);
+        heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolumeLast", heatSimVolume2);
 
         points = new Vector4[512];
         newPointsBuffer = new ComputeBuffer(512, sizeof(float) * 4);
@@ -83,13 +83,12 @@ public class HeatVis : MonoBehaviour {
     public void submitHeatPoints(List<Vector3> newPoints) {
         for (int i = 0; i < newPoints.Count; i++) {
             //convert point to volume space
-            points[pIndex] = new Vector4( // + offset, * (make it 0->1) * resolution
-                Mathf.Clamp01((newPoints[i].x + 4) * 0.125f) * 512, // 8 wide
+            float x = Mathf.Clamp01((newPoints[i].x + 4) * 0.125f) * 512; // 8 wide
+            points[Mathf.RoundToInt(x)] = new Vector4( // + offset, * (make it 0->1) * resolution
+                x, // 8 wide
                 Mathf.Clamp01((newPoints[i].y + 0) * 0.167f) * 128, // 6 tall
                 Mathf.Clamp01((newPoints[i].z + 4) * 0.125f) * 512, // 8 deep
                 1f);
-            pIndex++;
-            if (pIndex >= points.Length) pIndex = 0;
         }
         
     }
@@ -125,17 +124,6 @@ public class HeatVis : MonoBehaviour {
         //Debug.Log("_FrustumFarBottomRight  " + frustumFarV4[3]);
     }
 
-    bool simulate_update_toggle = false;
-    private void FixedUpdate() {
-        if (simulate_update_toggle) {
-            heatSimComputeShader.SetFloat("_Time", Time.time);
-            heatSimComputeShader.Dispatch(_simulateKernel, 16, 1, 16);
-            simulate_update_toggle = false;
-        } else {
-            heatSimComputeShader.Dispatch(_updateDataKernel, 16, 1, 16);
-            simulate_update_toggle = true;
-        }
-    }
 
     void Update() {
         if (transform.hasChanged) {
@@ -144,10 +132,23 @@ public class HeatVis : MonoBehaviour {
         }
 
         if (Input.GetKeyDown(KeyCode.F)) {
+            heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", heatSimVolume1);
+            heatSimComputeShader.Dispatch(_testDataKernel, 16, 1, 16);
+            heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", heatSimVolume2);
             heatSimComputeShader.Dispatch(_testDataKernel, 16, 1, 16);
         }
 
         newPointsBuffer.SetData(points);
+
+        heatSimComputeShader.SetFloat("_Time", Time.time);
+        heatSimComputeShader.SetFloat("_dTime", Time.deltaTime);
+
+        heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolume", vol12toggle ? heatSimVolume1 : heatSimVolume2);
+        heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", vol12toggle ? heatSimVolume2 : heatSimVolume1);
+        Shader.SetGlobalTexture("_HeatSimVolume", vol12toggle ? heatSimVolume1 : heatSimVolume2);
+        vol12toggle = !vol12toggle;
+
+        heatSimComputeShader.Dispatch(_simulateKernel, 16, 128, 16);
 
         for (int i = 0; i < 512; i++) {
             points[i].x = 0;
@@ -159,9 +160,9 @@ public class HeatVis : MonoBehaviour {
 
     private void OnDisable() {
         newPointsBuffer.Release();
-        DestroyImmediate(heatSimVolume);
-        DestroyImmediate(heatSimVolumeLastFrame);
-        heatSimVolume = null;
-        heatSimVolumeLastFrame = null;
+        DestroyImmediate(heatSimVolume1);
+        DestroyImmediate(heatSimVolume2);
+        heatSimVolume1 = null;
+        heatSimVolume2 = null;
     }
 }

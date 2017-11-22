@@ -1,0 +1,271 @@
+Base path: C:/Program Files/Unity_2017.2/Editor/Data
+Cmd: initializeCompiler
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3871 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3876 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3873 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3871 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3871 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3875 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3875 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3876 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3864 outsize=5597 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3873 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3873 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3873 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3873 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3864 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3864 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3863 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3863 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3871 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3872 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3868 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3862 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3862 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3864 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3864 outsize=5093 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  error: 1 plat 4 at HeatSim.compute(38): pow(f, e) will not work for negative f, use abs(f) or conditionally handle negative values if you expect them
+  api=4 insize=3866 outsize=5105 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  error: 1 plat 4 at HeatSim.compute(38): pow(f, e) will not work for negative f, use abs(f) or conditionally handle negative values if you expect them
+  api=4 insize=3868 outsize=5105 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3917 outsize=5205 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3914 outsize=5205 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3179 outsize=4373 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3527 outsize=4449 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3531 outsize=4449 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3506 outsize=4589 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3507 outsize=4581 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3507 outsize=4581 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3681 outsize=4645 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3730 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3727 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3731 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3729 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3730 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3731 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3725 outsize=4505 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3773 outsize=5377 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3773 outsize=5413 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3771 outsize=5413 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3775 outsize=5413 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at (0): Program 'simulate', warning X4714: sum of temp registers and indexable temp registers times 1024 threads exceeds the recommended total 16384.  Performance may be reduced
+  api=4 insize=3775 outsize=5037 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(40): undeclared identifier 'y'
+  api=4 insize=3451 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(40): undeclared identifier 'y'
+  api=4 insize=3452 outsize=0 ok=0
+Cmd: compileComputeKernel
+  api=4 insize=3449 outsize=1485 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=3358 outsize=1485 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2878 outsize=1053 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at HeatSim.compute(23): implicit truncation of vector type
+  error: 1 plat 4 at HeatSim.compute(24): implicit truncation of vector type
+  error: 1 plat 4 at HeatSim.compute(25): implicit truncation of vector type
+  error: 1 plat 4 at HeatSim.compute(26): implicit truncation of vector type
+  error: 1 plat 4 at HeatSim.compute(27): implicit truncation of vector type
+  error: 1 plat 4 at HeatSim.compute(28): implicit truncation of vector type
+  api=4 insize=2857 outsize=1453 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(35): RWTexture3D<float4> object does not have method 'Sample'
+  api=4 insize=2283 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(35): RWTexture3D<float4> object does not have method 'Sample'
+  error: 2 plat 4 at HeatSim.compute(35): syntax error: unexpected token 'new'
+  api=4 insize=2303 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(36): RWTexture3D<float4> object does not have method 'Sample'
+  api=4 insize=2325 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(39): incorrect number of arguments to numeric-type constructor
+  api=4 insize=2384 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(57): l-value specifies const object
+  api=4 insize=2384 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2453 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2461 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2462 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2454 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2455 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): 'Sample': no matching 0 parameter intrinsic method; Possible intrinsic methods are: Texture3D<float4>.Sample(SamplerState, float3|half3|min10float3|min16float3) Texture3D<float4>.Sample(SamplerState, float3|half3|min10float3|min16float3, int3) Texture3D<float4>.Sample(SamplerState, float3|half3|min10float3|min16float3, int3, float1|half1|min10float1|min16float1) Texture3D<float4>.Sample(SamplerState, float3|half3|min10float3|min16float3, int3, float1|half1|min10float1|min16float1, out uint status)
+  error: 2 plat 4 at HeatSim.compute(34): syntax error: unexpected token 'xxx'
+  api=4 insize=2462 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2455 outsize=0 ok=0
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(37): cannot map expression to cs_5_0 instruction set
+  api=4 insize=2463 outsize=0 ok=0
+Cmd: compileComputeKernel
+  api=4 insize=2471 outsize=1101 ok=1
+Cmd: preprocess
+  insize=3015 outsize=310 ok=1
+Cmd: compileSnippet
+  error: 1 plat 4 at (50): Output value 'vert' is not completely initialized\nCompiling Vertex program
+Platform defines: UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME
+  api=4 type=0 insize=3049 outsize=674 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=3049 outsize=1902 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2472 outsize=1101 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2472 outsize=1101 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(34): cannot implicitly convert from 'float2' to 'float3'
+  api=4 insize=2471 outsize=0 ok=0
+Cmd: compileComputeKernel
+  api=4 insize=2472 outsize=1101 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2478 outsize=757 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2472 outsize=1101 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2472 outsize=1061 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2505 outsize=1089 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2533 outsize=885 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2538 outsize=397 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2546 outsize=889 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2560 outsize=889 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(45): cannot implicitly convert from 'const float3' to 'float4'
+  api=4 insize=2785 outsize=0 ok=0
+Cmd: compileComputeKernel
+  api=4 insize=2781 outsize=897 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2704 outsize=885 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=2704 outsize=925 ok=1

@@ -64,7 +64,7 @@
 				if(abs(volumePos.y) > 1) return 0;
 				if(abs(volumePos.z) > 1) return 0;
 				
-				float density = tex3D(_HeatSimVolume, volumePos);
+				float density = tex3D(_HeatSimVolume, volumePos).a;
 				float3 colorPerDensity = float3(0.05, 0.025, 0);
 				return density * colorPerDensity;
 			}
