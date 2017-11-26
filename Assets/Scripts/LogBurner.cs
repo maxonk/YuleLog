@@ -45,12 +45,32 @@ public class LogBurner : MonoBehaviour, HeatSource {
     }
 
     IEnumerator generateHeatPoints_coroutine() {
-        List<Vector3> heatPoints = new List<Vector3>();
+        List<Vector4> heatPoints = new List<Vector4>();
+        Vector3 worldSpaceXYZ = new Vector3();
+        Vector4 interpolatedPosHeat = new Vector4();
+        float weight;
         while (isActiveAndEnabled) {
             foreach (BurnSimNode node in burnSimMap) {
-                if (node.heat > UnityEngine.Random.Range(0f, 0.5f)) {
-                    heatPoints.Add(transform.TransformPoint(node.position));
+                //for each position, offset randomly between it and it's neighbors.
+                interpolatedPosHeat.x = node.position.x;
+                interpolatedPosHeat.y = node.position.y;
+                interpolatedPosHeat.z = node.position.z;
+                interpolatedPosHeat.w = node.heat;
+                foreach (var neighborNode in node.connections) { //consider random shuffling - would it be okay perfwise?
+                    weight = UnityEngine.Random.Range(0f, 0.5f);
+                    interpolatedPosHeat.x = Mathf.Lerp(interpolatedPosHeat.x, neighborNode.position.x, weight);
+                    interpolatedPosHeat.y = Mathf.Lerp(interpolatedPosHeat.y, neighborNode.position.y, weight);
+                    interpolatedPosHeat.z = Mathf.Lerp(interpolatedPosHeat.z, neighborNode.position.z, weight);
+                    interpolatedPosHeat.w = Mathf.Lerp(interpolatedPosHeat.w, neighborNode.heat, weight);
                 }
+                worldSpaceXYZ.x = interpolatedPosHeat.x;
+                worldSpaceXYZ.y = interpolatedPosHeat.y;
+                worldSpaceXYZ.z = interpolatedPosHeat.z;
+                var camSpaceXYZ = transform.TransformPoint(worldSpaceXYZ);
+                interpolatedPosHeat.x = camSpaceXYZ.x;
+                interpolatedPosHeat.y = camSpaceXYZ.y;
+                interpolatedPosHeat.z = camSpaceXYZ.z;
+                heatPoints.Add(interpolatedPosHeat);
             }
             HeatVis.SubmitHeatPoints(heatPoints);
             yield return new WaitForSeconds(0.01f);

@@ -40,7 +40,7 @@
 			StructuredBuffer<float4> points;
 			StructuredBuffer<float> heat;
 
-			sampler3D _HeatSimVolume;
+			sampler3D _VelocityHeatVolume, _FuelSmokeVolume;
 
 			float4 _FrustumNearBottomLeft, _FrustumFarBottomLeft,
 				_FrustumNearBottomRight, _FrustumFarBottomRight,
@@ -56,16 +56,16 @@
 					
 			float3 sampleVolume(float3 worldPos){
 				float3 volumePos = worldPos; // -1 = 0, 1 = 1
-				volumePos.x = (worldPos.x + 4) * 0.125;
-				volumePos.y = (worldPos.y + 0) * 0.167;
-				volumePos.z = (worldPos.z + 4) * 0.125;
+				volumePos.x = (worldPos.x + 8) * 0.0675;
+				volumePos.y = (worldPos.y + 0) * 0.25;
+				volumePos.z = (worldPos.z + 8) * 0.0675;
 				
 				if(abs(volumePos.x) > 1) return 0;
 				if(abs(volumePos.y) > 1) return 0;
 				if(abs(volumePos.z) > 1) return 0;
 				
-				float density = tex3D(_HeatSimVolume, volumePos).a;
-				float3 colorPerDensity = float3(0.05, 0.025, 0);
+				float density = tex3D(_VelocityHeatVolume, volumePos).a;
+				float3 colorPerDensity = float3(0.1, 0.055, 0);
 				return density * colorPerDensity;
 			}
 			
@@ -94,7 +94,7 @@
 
 				// uv is working return i.uv.xxxx;
 				//this works too -- return nearBottomX.xxxx; //why does this not differ across the image ??
-				//return tex3D(_HeatSimVolume, float3(i.uv, 0)).xxxx;
+				//return tex3D(_VelocityHeatVolume, float3(i.uv, 0)).xxxx;
 				
 				//return visibleDepth.rrrr;
 				

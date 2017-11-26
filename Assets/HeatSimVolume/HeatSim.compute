@@ -1,50 +1,84 @@
 #pragma kernel simulate
 #pragma kernel testData
 
-RWTexture3D<float4> HeatSimVolume;
-Texture3D<float4> HeatSimVolumeLast; //512
-SamplerState samplerHeatSimVolumeLast;
+RWTexture3D<float4> HeatSimVolumeNext, FuelSmokeSimVolNext;
+Texture3D<float4> HeatSimVolumeLast, FuelSmokeSimVolLast; //255
+SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast;
 RWStructuredBuffer<float4> newPoints; //length 512 = x index
 float _Time, _dTime;
 
+float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
+	return tex.SampleLevel(ss, p * float3(1.0 / 255.0, 1.0 / 63.0, 1.0 / 255.0), 0);
+}
+
 [numthreads(32,1,32)]
 void simulate(uint3 id : SV_DispatchThreadID) {
-    //get the points from newPoints we might care about
+    //NEW HEAT PREPARATION
     float newHeat = 0.0;
     float distToP, pInfluence;
     int floorY;
-    if(newPoints[id.x].a != 0) {
+    if(newPoints[id.x].a > 0) { // only bother if theres some heat there
         distToP = distance(newPoints[id.x].xyz, id.xyz);
         pInfluence = saturate(1 - distToP);
-        newHeat += pInfluence;
+        newHeat += pInfluence * newPoints[id.x].w;
     }
+	if ((id.x < 511) && (newPoints[id.x + 1].a > 0)) { // x + 1
+		distToP = distance(newPoints[id.x + 1].xyz, id.xyz);
+		pInfluence = saturate(1 - distToP);
+		newHeat += pInfluence * newPoints[id.x + 1].w;
+	}
+	if ((id.x > 0) && (newPoints[id.x - 1].a > 0)) { // x - 1
+		distToP = distance(newPoints[id.x - 1].xyz, id.xyz);
+		pInfluence = saturate(1 - distToP);
+		newHeat += pInfluence * newPoints[id.x - 1].w;
+	}
      
     //compute HeatSimVolume from HeatSimVolumeLast neighbors
     if(id.y > 0 && id.y < 128){
-        /*
-        float heat = HeatSimVolumeLast[cellIndex] * 0.1f;
-        heat += HeatSimVolumeLast[cellIndex + int3(-1, 0, 0)] * 0.2; //adjacent
-        heat += HeatSimVolumeLast[cellIndex + int3(1, 0, 0)] * 0.2; 
-        heat += HeatSimVolumeLast[cellIndex + int3(0, 0, -1)] * 0.2; 
-        heat += HeatSimVolumeLast[cellIndex + int3(0, 0, 1)] * 0.2;
-        heat += HeatSimVolumeLast[cellIndex + int3(0, -1, 0)] * 0.1; //below
-        */
-        //trace backwards through velocity over dTime to find our previous position
-        float heat = 0;
-        float3 p01sampleSpace = id.xyz;
-        p01sampleSpace.x /= 512.0;
-        p01sampleSpace.y /= 128.0;
-        p01sampleSpace.z /= 512.0;
-        float3 v = HeatSimVolumeLast.SampleLevel(samplerHeatSimVolumeLast, p01sampleSpace, 0).xyz;
-        v = float3(0,0,0);
-        float3 p = p01sampleSpace - v * _dTime;        
-        //new heat from outside simulation 
-        float4 newData = HeatSimVolumeLast.SampleLevel(samplerHeatSimVolumeLast, p, 0);
-        newData.y += newData.a;
-        newData.a += newHeat;  
-        HeatSimVolume[id.xyz] = newData; 
+		// move to sample space from world right away and do ops here. this is bad and we should undo maybe if we can afford the ops? - it squashes velocity in the vertical i think...
+        float3 p = (float3)id.xyz;
+
+		//ADVECTION
+		//get our current data from the texture
+        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p);
+		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
+        //evolve forward to get the naive estimation
+		float3 fwdEvolvedPos = p - velocityHeat.xyz * _dTime;
+        float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, fwdEvolvedPos);
+		float4 fwdEvolvedFuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, fwdEvolvedPos);
+		//move forward and then back and then see what the difference is - that's our error
+		float3 fwdEvolvedThenBackProjectedPos = (fwdEvolvedPos // fast forward 
+												+ fwdEvolvedVelocityHeat.xyz * _dTime); // rewind
+		float4 fwdEvolvedThenBackProjectedVH = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, fwdEvolvedThenBackProjectedPos);
+		float4 fwdEvolvedThenBackProjectedFS = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, fwdEvolvedThenBackProjectedPos);
+		//the error is accumulated over 2 timesteps so cut it in half and that's our correction
+		float4 correctedForwardVH = fwdEvolvedVelocityHeat - ((fwdEvolvedThenBackProjectedVH - velocityHeat) / 2.0); 
+		correctedForwardVH.xyz = fwdEvolvedVelocityHeat.xyz;//nvidia says not to do fwdback correction for velocity for some reason?
+		float4 correctedForwardFS = fwdEvolvedFuelSmoke - ((fwdEvolvedThenBackProjectedFS - fuelSmoke) / 2.0);
+
+		//OUTSIDE ADDITION
+		correctedForwardVH.a += newHeat; //temperature, 
+		correctedForwardFS.x += newHeat; //fuel
+		correctedForwardVH.y += newHeat; //velocity (up)
+		correctedForwardFS.y += newHeat; //smoke density
+
+		//COMBUSTION
+		if ((correctedForwardVH.a > 0.5f) && (correctedForwardFS.x > 0.0)) { //if heat > k and there is fuel
+			correctedForwardFS.x = max(0.0, correctedForwardFS.x - 25 * _dTime); //consume fuel
+			correctedForwardVH.a += 50 * _dTime; //increase temp 
+			//generate expansion by modifying sim divergence (google feldman obrien 2003)
+		}
+
+		//HEAT MODULATES VELOCITY
+		correctedForwardVH.y += correctedForwardVH.a * 100 * _dTime;
+
+		//COOLING
+		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 4) * 1000.0 * _dTime);
+
+		//aaaand write out to texture
+        HeatSimVolumeNext[id.xyz] = correctedForwardVH;
     }    
-}
+} 
 
 [numthreads(32,1,32)]
 void testData(uint3 id : SV_DispatchThreadID) {
@@ -52,14 +86,14 @@ void testData(uint3 id : SV_DispatchThreadID) {
         int3 cellIndex = int3(id.x, y, id.z);
         float data = //id.z / 512.0;
             min(
-                max(pow(1 - (abs(256 - cellIndex.z) / 256.0), 4), 0),
-                max(pow(1 - (abs(256 - cellIndex.x) / 256.0), 4), 0)
+                max(pow(1 - (abs(128.0 - cellIndex.z) / 128.0), 4), 0),
+                max(pow(1 - (abs(128.0 - cellIndex.x) / 128.0), 4), 0)
             )
             * max((50 - cellIndex.y) / 25.0, 0); //test obv
 
         if(min(min(cellIndex.x, cellIndex.y), cellIndex.z) <= 0) data = 0;
-        if(max(max(cellIndex.x, cellIndex.y), cellIndex.z) >= 511) data = 0;
-        HeatSimVolume[cellIndex] = float4(0,0,0,data);
+        if(max(max(cellIndex.x, cellIndex.y), cellIndex.z) >= 255) data = 0;
+        HeatSimVolumeNext[cellIndex] = float4(0,0,0,data);
        // HeatSimVolumeLast[cellIndex] = data;   this is now read only which might break this testdata function..
     }
 }
