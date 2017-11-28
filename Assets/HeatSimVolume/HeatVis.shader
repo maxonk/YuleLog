@@ -57,14 +57,14 @@
 			float3 sampleVolume(float3 worldPos){
 				float3 volumePos = worldPos; // -1 = 0, 1 = 1
 				volumePos.x = (worldPos.x + 8) * 0.0675;
-				volumePos.y = (worldPos.y + 0) * 0.25;
-				volumePos.z = (worldPos.z + 8) * 0.0675;
+				volumePos.y = (worldPos.y + 1) * 0.125;
+				volumePos.z = (worldPos.z + 4) * 0.125;
 				
 				if(abs(volumePos.x) > 1) return 0;
 				if(abs(volumePos.y) > 1) return 0;
 				if(abs(volumePos.z) > 1) return 0;
 				
-				float density = tex3D(_VelocityHeatVolume, volumePos).a;
+				float density = tex3D(_FuelSmokeVolume, volumePos).y;
 				float3 colorPerDensity = float3(0.1, 0.055, 0);
 				return density * colorPerDensity;
 			}

@@ -37,14 +37,14 @@ public class HeatVis : MonoBehaviour {
     Vector3[] frustumNear, frustumFar;
     Vector4[] frustumNearV4, frustumFarV4;
 
+    [SerializeField] Texture2D noiseTex;
+
     RenderTexture generate3DRenderTexture() {
-        var ret = new RenderTexture(256, 64, 0, RenderTextureFormat.ARGBHalf);
+        var ret = new RenderTexture(256, 128, 0, RenderTextureFormat.ARGBHalf);
         ret.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
-        ret.volumeDepth = 256;
+        ret.volumeDepth = 128;
         ret.wrapMode = TextureWrapMode.Clamp;
-        ret.useMipMap = true;
-        ret.autoGenerateMips = true;
-        ret.filterMode = FilterMode.Trilinear;
+        ret.filterMode = FilterMode.Bilinear;
         ret.enableRandomWrite = true;
         ret.Create();
         return ret;
@@ -71,11 +71,14 @@ public class HeatVis : MonoBehaviour {
         fuelSmokeSimVol1 = generate3DRenderTexture();
         heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", fuelSmokeSimVol1);
         heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolumeLast", fuelSmokeSimVol1);
+        
+        heatSimComputeShader.SetTexture(_simulateKernel, "NoiseTex", noiseTex);
 
         fuelSmokeSimVol2 = generate3DRenderTexture();
         heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", fuelSmokeSimVol2);
         heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolumeLast", fuelSmokeSimVol2);
 
+        Shader.SetGlobalTexture("_NoiseTex", noiseTex);
         Shader.SetGlobalTexture("_VelocityHeatVolume", velocityHeatSimVol2);
         Shader.SetGlobalTexture("_FuelSmokeVolume", fuelSmokeSimVol2);
 
@@ -94,13 +97,13 @@ public class HeatVis : MonoBehaviour {
     public void submitHeatPoints(List<Vector4> newPoints) {
         for (int i = 0; i < newPoints.Count; i++) {
             //convert point to volume space
-            float x = Mathf.Clamp01((newPoints[i].x + 8) * 0.0675f) * 255; // 16 wide
+            float x = Mathf.Clamp01((newPoints[i].x + 8) * 0.0675f) * 256f - 0.5f; // 16 wide
             int xIndex = Mathf.RoundToInt(x);
             if ((points[xIndex].w <= 0) || (Random.value > 0.5f)) {
                 points[xIndex] = new Vector4( // + offset, * (make it 0->1) * resolution
                     x, // 8 wide
-                    Mathf.Clamp01((newPoints[i].y + 0) * 0.25f) * 63, // 4 tall
-                    Mathf.Clamp01((newPoints[i].z + 8) * 0.0675f) * 255, // 16 deep
+                    Mathf.Clamp01((newPoints[i].y + 1) * 0.125f) * 128f - 0.5f, // 8 tall
+                    Mathf.Clamp01((newPoints[i].z + 4) * 0.125f) * 128f - 0.5f, // 8 deep
                     newPoints[i].w);
             }
         }
@@ -137,9 +140,9 @@ public class HeatVis : MonoBehaviour {
 
         if (Input.GetKeyDown(KeyCode.F)) {
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol1);
-            heatSimComputeShader.Dispatch(_testDataKernel, 8, 1, 8);
+            heatSimComputeShader.Dispatch(_testDataKernel, 8, 1, 4);
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol2);
-            heatSimComputeShader.Dispatch(_testDataKernel, 8, 1, 8);
+            heatSimComputeShader.Dispatch(_testDataKernel, 8, 1, 4);
         }
 
         newPointsBuffer.SetData(points);
@@ -155,7 +158,7 @@ public class HeatVis : MonoBehaviour {
         Shader.SetGlobalTexture("_FuelSmokeVolume", vol12toggle ? fuelSmokeSimVol2 : fuelSmokeSimVol1);
         vol12toggle = !vol12toggle;
 
-        heatSimComputeShader.Dispatch(_simulateKernel, 8, 64, 8);
+        heatSimComputeShader.Dispatch(_simulateKernel, 8, 128, 4);
 
         for (int i = 0; i < 512; i++) {
             points[i].x = 0;

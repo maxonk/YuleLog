@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2015
+# Visual Studio 2017
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YuleLog", "YuleLog.csproj", "{62FBDA34-4F1B-0284-9B2F-A673DDBFD479}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YuleLog.Editor", "YuleLog.Editor.csproj", "{5D5DC040-8555-D4CE-83A2-BB4F397DE11C}"

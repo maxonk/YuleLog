@@ -3,12 +3,14 @@
 
 RWTexture3D<float4> HeatSimVolumeNext, FuelSmokeSimVolNext;
 Texture3D<float4> HeatSimVolumeLast, FuelSmokeSimVolLast; //255
-SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast;
+Texture2D<float4> NoiseTex;
+SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast, samplerNoiseTex;
 RWStructuredBuffer<float4> newPoints; //length 512 = x index
 float _Time, _dTime;
 
 float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
-	return tex.SampleLevel(ss, p * float3(1.0 / 255.0, 1.0 / 63.0, 1.0 / 255.0), 0);
+    //prob do this with a matrix tho
+	return tex.SampleLevel(ss, saturate((p + float3(0.5, 0.5, 0.5)) * float3(1.0 / 256.0, 1.0 / 128.0, 1.0 / 128.0)), 0);
 }
 
 [numthreads(32,1,32)]
@@ -22,7 +24,7 @@ void simulate(uint3 id : SV_DispatchThreadID) {
         pInfluence = saturate(1 - distToP);
         newHeat += pInfluence * newPoints[id.x].w;
     }
-	if ((id.x < 511) && (newPoints[id.x + 1].a > 0)) { // x + 1
+	if ((id.x < 255) && (newPoints[id.x + 1].a > 0)) { // x + 1
 		distToP = distance(newPoints[id.x + 1].xyz, id.xyz);
 		pInfluence = saturate(1 - distToP);
 		newHeat += pInfluence * newPoints[id.x + 1].w;
@@ -34,14 +36,23 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 	}
      
     //compute HeatSimVolume from HeatSimVolumeLast neighbors
-    if(id.y > 0 && id.y < 128){
+    if(id.y > 0 && id.y < 127){
 		// move to sample space from world right away and do ops here. this is bad and we should undo maybe if we can afford the ops? - it squashes velocity in the vertical i think...
         float3 p = (float3)id.xyz;
 
-		//ADVECTION
 		//get our current data from the texture
-        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p);
+        //DIFFUSE the neighbor cells into it slightly to try for spreading?
+        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p)
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 1.5, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -1.5, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(1.5, 0, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(-1.5, 0, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, 1.5))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -1.5));
+        velocityHeat /= 7.0;
 		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
+
+		//ADVECTION
         //evolve forward to get the naive estimation
 		float3 fwdEvolvedPos = p - velocityHeat.xyz * _dTime;
         float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, fwdEvolvedPos);
@@ -55,28 +66,28 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		float4 correctedForwardVH = fwdEvolvedVelocityHeat - ((fwdEvolvedThenBackProjectedVH - velocityHeat) / 2.0); 
 		correctedForwardVH.xyz = fwdEvolvedVelocityHeat.xyz;//nvidia says not to do fwdback correction for velocity for some reason?
 		float4 correctedForwardFS = fwdEvolvedFuelSmoke - ((fwdEvolvedThenBackProjectedFS - fuelSmoke) / 2.0);
-
+        
 		//OUTSIDE ADDITION
-		correctedForwardVH.a += newHeat; //temperature, 
-		correctedForwardFS.x += newHeat; //fuel
-		correctedForwardVH.y += newHeat; //velocity (up)
-		correctedForwardFS.y += newHeat; //smoke density
+		correctedForwardVH.a += newHeat * 1.0
+            * NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).r; //temperature - modulate by noise?
+		//correctedForwardFS.x += newHeat * _dTime * 1.0; //fuel
+		correctedForwardVH.xyz += newHeat * 1000000.0 
+            * (NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).xyz 
+            * float3(0.2, 0.35, 0.2)
+            - float3(0.05, 0, 0.05)); //velocity (up) - modulate by noise?
+		correctedForwardFS.y += newHeat * 2.0; //smoke density
+        
+		//HEAT = UPWARD ACCELERATION 
+		correctedForwardVH.y += correctedForwardVH.a * 1.0 * _dTime;
 
-		//COMBUSTION
-		if ((correctedForwardVH.a > 0.5f) && (correctedForwardFS.x > 0.0)) { //if heat > k and there is fuel
-			correctedForwardFS.x = max(0.0, correctedForwardFS.x - 25 * _dTime); //consume fuel
-			correctedForwardVH.a += 50 * _dTime; //increase temp 
-			//generate expansion by modifying sim divergence (google feldman obrien 2003)
-		}
-
-		//HEAT MODULATES VELOCITY
-		correctedForwardVH.y += correctedForwardVH.a * 100 * _dTime;
-
-		//COOLING
-		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 4) * 1000.0 * _dTime);
+		//COOLING and DISSIPATION
+		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 4) * 100000.0 * _dTime);
+        correctedForwardFS.y = saturate(correctedForwardFS.y - _dTime * 0.075); //smoke density
 
 		//aaaand write out to texture
+        //BUT AT SOME POINT WE SHOULD PROJECT A BIT FORWARD TOO BY VELOCITY OTHERWISE WE GETTIN NOWHERES - how do tho
         HeatSimVolumeNext[id.xyz] = correctedForwardVH;
+        FuelSmokeSimVolNext[id.xyz] = correctedForwardFS;
     }    
 } 
 
