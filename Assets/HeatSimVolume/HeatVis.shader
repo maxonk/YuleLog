@@ -4,7 +4,7 @@
 	{
 		_MainTex ("Source", 2D) = "white" {}
 		_HeatTex ("Texture", 2D) = "white" {}
-		_LifeHeatColorGrad ("Life/Heat Color Gradient", 2D) = "white" {}
+		_SmokeHeatColorGrad ("Life/Heat Color Gradient", 2D) = "white" {}
 	}
 	SubShader
 	{
@@ -36,7 +36,7 @@
 			
 			sampler2D _CameraDepthTexture;
 
-			sampler2D _HeatTex, _LifeHeatColorGrad;
+			sampler2D _HeatTex, _SmokeHeatColorGrad;
 			StructuredBuffer<float4> points;
 			StructuredBuffer<float> heat;
 
@@ -54,19 +54,16 @@
 				return o;
 			}
 					
-			float3 sampleVolume(float3 worldPos){
+			float2 sampleVolume(float3 worldPos, float visibility, float visibleHeat){
 				float3 volumePos = worldPos; // -1 = 0, 1 = 1
-				volumePos.x = (worldPos.x + 8) * 0.0675;
-				volumePos.y = (worldPos.y + 1) * 0.125;
-				volumePos.z = (worldPos.z + 4) * 0.125;
-				
-				if(abs(volumePos.x) > 1) return 0;
-				if(abs(volumePos.y) > 1) return 0;
-				if(abs(volumePos.z) > 1) return 0;
-				
-				float density = tex3D(_FuelSmokeVolume, volumePos).y;
-				float3 colorPerDensity = float3(0.1, 0.055, 0);
-				return density * colorPerDensity;
+				volumePos.x = saturate((worldPos.x + 8) * 0.0675);
+				volumePos.y = saturate((worldPos.y + 1) * 0.125);
+				volumePos.z = saturate((worldPos.z + 4) * 0.125);
+
+				float smoke = tex3D(_FuelSmokeVolume, volumePos).y;
+				float heat = tex3D(_VelocityHeatVolume, volumePos).a;
+
+				return float2(visibility - visibility * smoke, visibleHeat + heat);
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
@@ -81,24 +78,27 @@
 				float3 nearXY = lerp(nearBottomX, nearTopX, i.uv.y);
 				float3 farXY = lerp(farBottomX, farTopX, i.uv.y);
 
-				float3 fireAddColor = 0;
+				float visibility = 1.0;
+				float visibleHeat = 0.0;
+
+				float2 samp;
 				for (float z = 0; z < 300; z++) {
 					float3 normalizedFrustumIndex = float3(i.uv, z / 300.0);
 					if(normalizedFrustumIndex.z < visibleDepth) { 
 						float3 worldPos = lerp(nearXY, farXY, normalizedFrustumIndex.z);
-						fireAddColor += sampleVolume(worldPos); //transform world pos into volume space
-					} //else { 
-						//z = 256; //force finish loop breaks everything??
-					//}
+						samp = sampleVolume(worldPos, visibility, visibleHeat); //transform world pos into volume space
+						visibility = samp.x;
+						visibleHeat = samp.y;
+					} 
 				}
 
-				// uv is working return i.uv.xxxx;
-				//this works too -- return nearBottomX.xxxx; //why does this not differ across the image ??
-				//return tex3D(_VelocityHeatVolume, float3(i.uv, 0)).xxxx;
+				float4 smokeColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(pow(saturate(visibleHeat), 4) * 1000.0), 1), 0.5));
 				
-				//return visibleDepth.rrrr;
-				
-				return color + float4(fireAddColor, 0);
+				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(pow(saturate(visibleHeat), 1.6) * 200), 2), 0.75));
+
+				return (color * visibility)
+					+ (smokeColor * (1 - visibility))
+					+ (fireColor * visibleHeat * 50);// * (1 - visibility));
 			}
 			
 			ENDCG

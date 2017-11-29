@@ -10,45 +10,59 @@ float _Time, _dTime;
 
 float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
     //prob do this with a matrix tho
-	return tex.SampleLevel(ss, saturate((p + float3(0.5, 0.5, 0.5)) * float3(1.0 / 256.0, 1.0 / 128.0, 1.0 / 128.0)), 0);
+	return tex.SampleLevel(ss, saturate((p /*+ float3(0.5, 0.5, 0.5)*/) * float3(1.0 / 256.0, 1.0 / 128.0, 1.0 / 128.0)), 0);
+}
+
+float pInfluence(float distToP){
+	return pow(saturate(1.5 - distToP), 5);
 }
 
 [numthreads(32,1,32)]
 void simulate(uint3 id : SV_DispatchThreadID) {
     //NEW HEAT PREPARATION
     float newHeat = 0.0;
-    float distToP, pInfluence;
+    float distToP;
     int floorY;
     if(newPoints[id.x].a > 0) { // only bother if theres some heat there
         distToP = distance(newPoints[id.x].xyz, id.xyz);
-        pInfluence = saturate(1 - distToP);
-        newHeat += pInfluence * newPoints[id.x].w;
+        newHeat += pInfluence(distToP) * newPoints[id.x].w;
     }
 	if ((id.x < 255) && (newPoints[id.x + 1].a > 0)) { // x + 1
 		distToP = distance(newPoints[id.x + 1].xyz, id.xyz);
-		pInfluence = saturate(1 - distToP);
-		newHeat += pInfluence * newPoints[id.x + 1].w;
+		newHeat += pInfluence(distToP) * newPoints[id.x + 1].w;
 	}
 	if ((id.x > 0) && (newPoints[id.x - 1].a > 0)) { // x - 1
 		distToP = distance(newPoints[id.x - 1].xyz, id.xyz);
-		pInfluence = saturate(1 - distToP);
-		newHeat += pInfluence * newPoints[id.x - 1].w;
+		newHeat += pInfluence(distToP) * newPoints[id.x - 1].w;
+	}
+	// + 256
+    if(newPoints[256 + id.x].a > 0) { // only bother if theres some heat there
+        distToP = distance(newPoints[256 + id.x].xyz, id.xyz);
+        newHeat += pInfluence(distToP) * newPoints[256 + id.x].w;
+    }
+	if ((id.x < 511) && (newPoints[256 + id.x + 1].a > 0)) { // x + 1
+		distToP = distance(newPoints[256 + id.x + 1].xyz, id.xyz);
+		newHeat += pInfluence(distToP) * newPoints[256 + id.x + 1].w;
+	}
+	if ((id.x > 256) && (newPoints[256 + id.x - 1].a > 0)) { // x - 1
+		distToP = distance(newPoints[256 + id.x - 1].xyz, id.xyz);
+		newHeat += pInfluence(distToP) * newPoints[id.x - 1].w;
 	}
      
     //compute HeatSimVolume from HeatSimVolumeLast neighbors
     if(id.y > 0 && id.y < 127){
 		// move to sample space from world right away and do ops here. this is bad and we should undo maybe if we can afford the ops? - it squashes velocity in the vertical i think...
-        float3 p = (float3)id.xyz;
+        float3 p = (float3)id.xyz + float3(0.5, 0.5, 0.5);
 
 		//get our current data from the texture
         //DIFFUSE the neighbor cells into it slightly to try for spreading?
         float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p)
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 1.5, 0))
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -1.5, 0))
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(1.5, 0, 0))
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(-1.5, 0, 0))
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, 1.5))
-         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -1.5));
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0.35, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -0.35, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0.35, 0, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(-0.35, 0, 0))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, 0.35))
+         + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -0.35));
         velocityHeat /= 7.0;
 		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
 
@@ -68,8 +82,9 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		float4 correctedForwardFS = fwdEvolvedFuelSmoke - ((fwdEvolvedThenBackProjectedFS - fuelSmoke) / 2.0);
         
 		//OUTSIDE ADDITION
-		correctedForwardVH.a += newHeat * 1.0
-            * NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).r; //temperature - modulate by noise?
+		correctedForwardVH.a += max(newHeat * 700.0
+            * NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).r, //temperature - modulate by noise?
+			0.0); 
 		//correctedForwardFS.x += newHeat * _dTime * 1.0; //fuel
 		correctedForwardVH.xyz += newHeat * 1000000.0 
             * (NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).xyz 
@@ -78,11 +93,11 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		correctedForwardFS.y += newHeat * 2.0; //smoke density
         
 		//HEAT = UPWARD ACCELERATION 
-		correctedForwardVH.y += correctedForwardVH.a * 1.0 * _dTime;
+		correctedForwardVH.y += correctedForwardVH.a * 0.00005 * _dTime;
 
 		//COOLING and DISSIPATION
-		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 4) * 100000.0 * _dTime);
-        correctedForwardFS.y = saturate(correctedForwardFS.y - _dTime * 0.075); //smoke density
+		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 2) * 2000.0 * _dTime);
+        correctedForwardFS.y = saturate(correctedForwardFS.y - pow(correctedForwardFS.y, 4) * 3000.0 * _dTime); //smoke density
 
 		//aaaand write out to texture
         //BUT AT SOME POINT WE SHOULD PROJECT A BIT FORWARD TOO BY VELOCITY OTHERWISE WE GETTIN NOWHERES - how do tho

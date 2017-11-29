@@ -105,6 +105,15 @@ public class HeatVis : MonoBehaviour {
                     Mathf.Clamp01((newPoints[i].y + 1) * 0.125f) * 128f - 0.5f, // 8 tall
                     Mathf.Clamp01((newPoints[i].z + 4) * 0.125f) * 128f - 0.5f, // 8 deep
                     newPoints[i].w);
+            } else {
+                xIndex = 256 + Mathf.RoundToInt(x);
+                if ((points[xIndex].w <= 0) || (Random.value > 0.5f)) {
+                    points[xIndex] = new Vector4( // + offset, * (make it 0->1) * resolution
+                        x, // 8 wide
+                        Mathf.Clamp01((newPoints[i].y + 1) * 0.125f) * 128f - 0.5f, // 8 tall
+                        Mathf.Clamp01((newPoints[i].z + 4) * 0.125f) * 128f - 0.5f, // 8 deep
+                        newPoints[i].w);
+                }
             }
         }
     }
