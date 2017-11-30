@@ -82,21 +82,21 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		float4 correctedForwardFS = fwdEvolvedFuelSmoke - ((fwdEvolvedThenBackProjectedFS - fuelSmoke) / 2.0);
         
 		//OUTSIDE ADDITION
-		correctedForwardVH.a += max(newHeat * 700.0
+		correctedForwardVH.a += max(newHeat * 1.0
             * NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).r, //temperature - modulate by noise?
 			0.0); 
 		//correctedForwardFS.x += newHeat * _dTime * 1.0; //fuel
-		correctedForwardVH.xyz += newHeat * 1000000.0 
+		correctedForwardVH.xyz += newHeat * 100000.0 
             * (NoiseTex.SampleLevel(samplerNoiseTex, p.xy * 0.1 + float2(_Time, _Time * 0.8), 0).xyz 
-            * float3(0.2, 0.35, 0.2)
-            - float3(0.05, 0, 0.05)); //velocity (up) - modulate by noise?
+            * float3(1, 0, 1)
+            - float3(0.25, 0, 0.25)); //velocity (up) - modulate by noise?
 		correctedForwardFS.y += newHeat * 2.0; //smoke density
         
 		//HEAT = UPWARD ACCELERATION 
-		correctedForwardVH.y += correctedForwardVH.a * 0.00005 * _dTime;
+		correctedForwardVH.y += correctedForwardVH.a * 50000.0 * _dTime;
 
 		//COOLING and DISSIPATION
-		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 2) * 2000.0 * _dTime);
+		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a, 4) * 2000000000.0 * _dTime);
         correctedForwardFS.y = saturate(correctedForwardFS.y - pow(correctedForwardFS.y, 4) * 3000.0 * _dTime); //smoke density
 
 		//aaaand write out to texture
