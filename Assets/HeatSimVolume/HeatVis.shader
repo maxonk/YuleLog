@@ -2,7 +2,7 @@
 {
 	Properties
 	{
-		_MainTex ("Source", 2D) = "white" {}
+		_MainTex ("Texture", 2D) = "white" {}
 		_HeatTex ("Texture", 2D) = "white" {}
 		_SmokeHeatColorGrad ("Life/Heat Color Gradient", 2D) = "white" {}
 	}
@@ -37,8 +37,6 @@
 			sampler2D _CameraDepthTexture;
 
 			sampler2D _HeatTex, _SmokeHeatColorGrad;
-			StructuredBuffer<float4> points;
-			StructuredBuffer<float> heat;
 
 			sampler3D _VelocityHeatVolume, _FuelSmokeVolume;
 
@@ -54,16 +52,15 @@
 				return o;
 			}
 					
-			float2 sampleVolume(float3 worldPos, float visibility, float visibleHeat){
-				float3 volumePos = worldPos; // -1 = 0, 1 = 1
-				volumePos.x = saturate((worldPos.x + 8) * 0.0675);
-				volumePos.y = saturate((worldPos.y + 1) * 0.125);
-				volumePos.z = saturate((worldPos.z + 4) * 0.125);
+			float3 sampleVolume(float3 pos, float3 smokeVisHeat){
+				float2 smokeHeat = tex3D(_FuelSmokeVolume, pos).xy;
 
-				float smoke = tex3D(_FuelSmokeVolume, volumePos).y;
-				float heat = tex3D(_VelocityHeatVolume, volumePos).a;
-
-				return float2(-visibility * smoke, heat * smoke * visibility);
+				//ret = change in vis, change in visible heat
+				return float3(												
+					smokeHeat.x,													//change in smoke density
+					-smokeHeat.x * smokeVisHeat.y, //* saturate(heat * 100.0),			//change in visibility
+					max(0, smokeHeat.y - smokeVisHeat.z) //increase if it's more					//change in visible heat
+				) * step(pos, float3(1,1,1)) * step(float3(0,0,0), pos); //returns 0 if pos is outside of 01 range
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
@@ -71,42 +68,36 @@
 				
 				float visibleDepth = Linear01Depth(tex2D(_CameraDepthTexture, i.uv));
 				
-				float3 nearBottomX = lerp(_FrustumNearBottomLeft, _FrustumNearBottomRight, i.uv.x);
-				float3 nearTopX = lerp(_FrustumNearTopLeft, _FrustumNearTopRight, i.uv.x);
-				float3 farBottomX = lerp(_FrustumFarBottomLeft, _FrustumFarBottomRight, i.uv.x);
-				float3 farTopX = lerp(_FrustumFarTopLeft, _FrustumFarTopRight, i.uv.x);
-				float3 nearXY = lerp(nearBottomX, nearTopX, i.uv.y);
-				float3 farXY = lerp(farBottomX, farTopX, i.uv.y);
-
-				float visibility = 1.0;
-				float visibleHeat = 0.0;
-
-				float2 samp;
-				for (float z = 0; z < 300; z++) {
-					float3 normalizedFrustumIndex = float3(i.uv, z / 300.0);
-					if(normalizedFrustumIndex.z < visibleDepth) { 
-						float3 worldPos = lerp(nearXY, farXY, normalizedFrustumIndex.z);
-						samp = sampleVolume(worldPos, visibility, visibleHeat); //transform world pos into volume space
-						//test against next frustrum index and only do by pct?
-						visibility += samp.x;
-						visibleHeat += samp.y;
-					} else if((z - 1) / 300.0 < visibleDepth){
-						float3 worldPos = lerp(nearXY, farXY, visibleDepth);
-						float pctThru = (visibleDepth - (z-1) / 300.0) / (1 / 300.0);
-						samp = sampleVolume(worldPos, visibility, visibleHeat); //transform world pos into volume space
-						//test against next frustrum index and only do by pct?
-						visibility += samp.x * pctThru;
-						visibleHeat += samp.y * pctThru;
-					}
-				}
-
-				float4 smokeColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(pow(saturate(visibleHeat), 4) * 1000.0), 1), 0.5));
+				float3 nearXY = 
+					lerp(
+						lerp(_FrustumNearBottomLeft, _FrustumNearBottomRight, i.uv.x), //near bottom x 
+						lerp(_FrustumNearTopLeft, _FrustumNearTopRight, i.uv.x), //near top x
+					i.uv.y);
+				float3 farXY = 
+					lerp(
+						lerp(_FrustumFarBottomLeft, _FrustumFarBottomRight, i.uv.x),  //far bottom x
+						lerp(_FrustumFarTopLeft, _FrustumFarTopRight, i.uv.x),  //far top x
+					i.uv.y);
 				
-				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(pow(saturate(visibleHeat),2.15) * 10000000), 3), 0.5));
+				float3 smokeVisHeat = float3(0,1,0);
 
-				return (color * visibility)
-					+ (smokeColor * (1 - visibility))
-					+ (fireColor * visibleHeat * 3000);// * (1 - visibility));
+				for (float z = 0.0; z < 1.0; z += 0.00390625) { //0.00390625 = 1 / 256
+					smokeVisHeat += sampleVolume(lerp(nearXY, farXY, z), smokeVisHeat)
+						* step(z, visibleDepth); //1 if visibleDepth > z, 0 otherwise
+				}
+				float pctThru = fmod(visibleDepth, 0.00390625); //add remainder
+				smokeVisHeat += sampleVolume(lerp(nearXY, farXY, visibleDepth), smokeVisHeat) * pctThru; 
+
+				smokeVisHeat = saturate(smokeVisHeat);
+
+				float4 smokeColor = tex2D(_SmokeHeatColorGrad, float2(saturate(smokeVisHeat.x * 10), 0.75));
+				
+				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(saturate(pow(smokeVisHeat.z * 500, 5) * 20), 0.25));
+							 
+				return (color * smokeVisHeat.y)
+					+ (smokeColor * (1 - smokeVisHeat.y))
+					+ smokeVisHeat.zzzz * 1000000000000.0 //heat is 0?????
+					+ (fireColor * 1.0);// * pow(saturate(1 - visibility * 3.0), 0.1);// * (1 - visibility));
 			}
 			
 			ENDCG

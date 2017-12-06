@@ -16,7 +16,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
 
 
     LogRenderer logRenderer;
-    BurnSimNode[] burnSimMap;
+    public BurnSimNode[] burnSimMap;
 
     LineRenderer lineRenderer;
     Vector3[] flamePositions;
@@ -43,38 +43,18 @@ public class LogBurner : MonoBehaviour, HeatSource {
         StartCoroutine(simulateBurn_coroutine());
         StartCoroutine(generateHeatPoints_coroutine());
     }
-
+    
     IEnumerator generateHeatPoints_coroutine() {
-        List<Vector4> heatPoints = new List<Vector4>();
-        Vector3 worldSpaceXYZ = new Vector3();
-        Vector4 interpolatedPosHeat = new Vector4();
-        float weight;
+        Vector4[] heatPoints = new Vector4[burnSimMap.Length];
+        for (int i = 0; i < heatPoints.Length; i++) heatPoints[i] = new Vector4();
         while (isActiveAndEnabled) {
-            foreach (BurnSimNode node in burnSimMap) {
-                //for each position, offset randomly between it and it's neighbors.
-                interpolatedPosHeat.x = node.position.x;
-                interpolatedPosHeat.y = node.position.y;
-                interpolatedPosHeat.z = node.position.z;
-                interpolatedPosHeat.w = node.heat;
-                foreach (var neighborNode in node.connections) { //consider random shuffling - would it be okay perfwise?
-                    weight = UnityEngine.Random.Range(0f, 0.5f);
-                    interpolatedPosHeat.x = Mathf.Lerp(interpolatedPosHeat.x, neighborNode.position.x, weight);
-                    interpolatedPosHeat.y = Mathf.Lerp(interpolatedPosHeat.y, neighborNode.position.y, weight);
-                    interpolatedPosHeat.z = Mathf.Lerp(interpolatedPosHeat.z, neighborNode.position.z, weight);
-                    interpolatedPosHeat.w = Mathf.Lerp(interpolatedPosHeat.w, neighborNode.heat, weight);
-                }
-                worldSpaceXYZ.x = interpolatedPosHeat.x;
-                worldSpaceXYZ.y = interpolatedPosHeat.y;
-                worldSpaceXYZ.z = interpolatedPosHeat.z;
-                var camSpaceXYZ = transform.TransformPoint(worldSpaceXYZ);
-                interpolatedPosHeat.x = camSpaceXYZ.x;
-                interpolatedPosHeat.y = camSpaceXYZ.y;
-                interpolatedPosHeat.z = camSpaceXYZ.z;
-                heatPoints.Add(interpolatedPosHeat);
+            for(int i = 0; i < burnSimMap.Length; i++) {
+                var node = burnSimMap[i];
+                heatPoints[i] = transform.TransformPoint(burnSimMap[i].position);
+                heatPoints[i].w = burnSimMap[i].heat * Time.deltaTime;
             }
             HeatVis.SubmitHeatPoints(heatPoints);
-            yield return new WaitForSeconds(0.01f);
-            heatPoints.Clear();
+            yield return null;
         }
     }
 	
