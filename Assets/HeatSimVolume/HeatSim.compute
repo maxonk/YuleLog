@@ -29,11 +29,12 @@ void simulate(uint3 id : SV_DispatchThreadID) {
         float3 p = (float3)id.xyz + float3(0.5, 0.5, 0.5);
         
 		//OUTSIDE ADDITION
-		float4 newVH = Sample(LogInsertionVolume, samplerLogInsertionVolume, id.xyz) * _dTime;
-
+		float4 newVH = Sample(LogInsertionVolume, samplerLogInsertionVolume, id.xyz); //* _dTime;
+		LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
+		 
 		//get our current data from the texture
         //DIFFUSE the neighbor cells into it slightly to try for spreading?
-        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p) + newVH
+        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p) //+ newVH
 			+ Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, _dTime, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -_dTime, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(_dTime, 0, 0))
@@ -42,7 +43,10 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -_dTime));
 		velocityHeat /= 7.0;
 
-		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p) + float4(0, newVH.a * 2.0, 0, 0)
+		velocityHeat += newVH;
+		velocityHeat.a = max(velocityHeat.a, 0.005);
+
+		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p)
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, _dTime * 4.0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, -_dTime * 4.0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(_dTime * 4.0, 0, 0))
@@ -50,6 +54,8 @@ void simulate(uint3 id : SV_DispatchThreadID) {
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, _dTime * 4.0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, -_dTime * 4.0));
 		 fuelSmoke /= 7.0;
+
+		 fuelSmoke.y += newVH.a;
 
 		//ADVECTION
         //evolve forward to get the naive estimation
@@ -75,11 +81,11 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 				- fuelSmoke) / 2.0
 			);
         
-		//HEAT = UPWARD ACCELERATION  - add a const to account for ambient heat
-		correctedForwardVH.y += (correctedForwardVH.a + 0.075) * 5.0 * _dTime;
+		//HEAT = UPWARD ACCELERATION  - add a const to account for ambient heat - moved const up to right after sample, min
+		correctedForwardVH.y += (correctedForwardVH.a) * 10.0 * _dTime;
 
 		//COOLING and DISSIPATION
-		correctedForwardVH.a = max(0.0, correctedForwardVH.a - pow(correctedForwardVH.a * 20, 3) * 10000000.0 * _dTime);
+	//	correctedForwardVH.a = max(0.005, correctedForwardVH.a - pow(correctedForwardVH.a * 20, 3) * 10000000.0 * _dTime);
         //correctedForwardFS.y = max(0.0, correctedForwardFS.y - pow(correctedForwardFS.y, 1) * 0.2 * _dTime); //smoke density
 
 		//aaaand write out to texture
@@ -97,7 +103,7 @@ void insert(int3 index, float3 pos, float heat){
 				* float3(1, 0.5, 1)
 				- float3(0.25, 0, 0.25))
 		), 
-		heat * pInfluence(distance(index, pos))
+		heat * pInfluence(distance(index, pos)) * 1.0
 	);
 }
 

@@ -53,14 +53,14 @@
 			}
 					
 			float3 sampleVolume(float3 pos, float3 smokeVisHeat){
-				float2 smokeHeat = tex3D(_FuelSmokeVolume, pos).xy;
+				float2 heatSmoke = tex3D(_FuelSmokeVolume, pos).xy;
 
 				//ret = change in vis, change in visible heat
 				return float3(												
-					smokeHeat.x,													//change in smoke density
-					-smokeHeat.x * smokeVisHeat.y, //* saturate(heat * 100.0),			//change in visibility
-					max(0, smokeHeat.y - smokeVisHeat.z) //increase if it's more					//change in visible heat
-				) * step(pos, float3(1,1,1)) * step(float3(0,0,0), pos); //returns 0 if pos is outside of 01 range
+					heatSmoke.y,													//change in smoke density
+					-heatSmoke.y * smokeVisHeat.y, //* saturate(heat * 100.0),			//change in visibility
+					max(0.0000000, heatSmoke.x )//- smokeVisHeat.z) //increase if it's more					//change in visible heat
+				) ;//* step(pos, float3(1,1,1)) * step(float3(0,0,0), pos); //returns 0 if pos is outside of 01 range
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
@@ -79,11 +79,11 @@
 						lerp(_FrustumFarTopLeft, _FrustumFarTopRight, i.uv.x),  //far top x
 					i.uv.y);
 				
-				float3 smokeVisHeat = float3(0,1,0);
+				float3 smokeVisHeat = float3(0.0, 1.0, 0.0);
 
 				for (float z = 0.0; z < 1.0; z += 0.00390625) { //0.00390625 = 1 / 256
-					smokeVisHeat += sampleVolume(lerp(nearXY, farXY, z), smokeVisHeat)
-						* step(z, visibleDepth); //1 if visibleDepth > z, 0 otherwise
+					smokeVisHeat += sampleVolume(lerp(nearXY, farXY, z), smokeVisHeat);
+						//* step(z, visibleDepth); //1 if visibleDepth > z, 0 otherwise
 				}
 				float pctThru = fmod(visibleDepth, 0.00390625); //add remainder
 				smokeVisHeat += sampleVolume(lerp(nearXY, farXY, visibleDepth), smokeVisHeat) * pctThru; 
@@ -96,8 +96,9 @@
 							 
 				return (color * smokeVisHeat.y)
 					+ (smokeColor * (1 - smokeVisHeat.y))
-					+ smokeVisHeat.zzzz * 1000000000000.0 //heat is 0?????
-					+ (fireColor * 1.0);// * pow(saturate(1 - visibility * 3.0), 0.1);// * (1 - visibility));
+					+ smokeVisHeat.xyzx * 0.1; /* //heat is 0?????
+			//		+ (fireColor * 1.0);// * pow(saturate(1 - visibility * 3.0), 0.1);// * (1 - visibility));
+					*/
 			}
 			
 			ENDCG
