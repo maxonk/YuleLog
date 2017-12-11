@@ -52,6 +52,10 @@
 				o.uv = v.uv;
 				return o;
 			}
+
+			#define numStepsToFullHeat 10.0
+			#define minVisibleHeat 0.55
+			#define maxHeat 1.075
 					
 			float3 smokeVisHeatNext(float3 pos, float3 smokeVisHeatLast){
 				float2 heatSmoke = tex3D(_FuelSmokeVolume, pos).xy
@@ -62,7 +66,7 @@
 				return float3(												
 					heatSmoke.y,													//change in smoke density
 					-heatSmoke.y * smokeVisHeatLast.y,// * saturate(heatSmoke.x * 5.0),			//change in visibility
-					max(smokeVisHeatLast.z, heatSmoke.x - 0.005) - smokeVisHeatLast.z//- smokeVisHeat.z) //increase if it's more					//change in visible heat
+					pow(max(0, (heatSmoke.x - minVisibleHeat) / (maxHeat - minVisibleHeat)), 1) * (1.0 / numStepsToFullHeat)//- smokeVisHeat.z) //increase if it's more					//change in visible heat
 				); 
 			}
 			
@@ -97,7 +101,7 @@
 				
 				float4 smokeColor = tex2D(_SmokeHeatColorGrad, float2(saturate(smokeVisHeat.x * 1.0), 0.75));
 				
-				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(saturate(pow(smokeVisHeat.z * 1, 1)), 0.25));
+				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(smokeVisHeat.z - 0.075), 1.5), 0.25));
 							 
 						//	 return smokeVisHeat.zzzz;
 					//	smokeVisHeat.y = 1;//REMOVE

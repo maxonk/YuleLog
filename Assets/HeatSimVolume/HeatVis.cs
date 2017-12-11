@@ -189,7 +189,7 @@ public class HeatVis : MonoBehaviour {
         }
 
         heatSimComputeShader.SetFloat("_Time", Time.time);
-        heatSimComputeShader.SetFloat("_dTime", Time.deltaTime);
+        heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
 
         //SIMULATE
         if (doSetTex) {
