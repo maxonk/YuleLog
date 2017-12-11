@@ -5,10 +5,9 @@
 
 RWTexture3D<float4> HeatSimVolumeNext, FuelSmokeSimVolNext;
 Texture3D<float4> HeatSimVolumeLast, FuelSmokeSimVolLast; //255
-Texture3D<float4> LogInsertionVolume;
-RWTexture3D<float4> LogInsertionVolumeRW;
+RWTexture3D<float> LogInsertionVolumeRW;
 Texture2D<float4> NoiseTex;
-SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast, samplerNoiseTex, samplerLogInsertionVolume;
+SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast, samplerNoiseTex;
 RWStructuredBuffer<float4> newPoints; //length 256 
 float _Time, _dTime;
 
@@ -17,7 +16,7 @@ float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
 }
 
 float pInfluence(float distToP){
-	return pow(saturate(1.5 - distToP), 5);
+	return pow(saturate((5.0 - distToP) / 5.0), 2);
 }
 
 [numthreads(1,1,1)]
@@ -28,44 +27,54 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		// move to sample space from world right away and do ops here. this is bad and we should undo maybe if we can afford the ops? - it squashes velocity in the vertical i think...
         float3 p = (float3)id.xyz + float3(0.5, 0.5, 0.5);
         
-		//OUTSIDE ADDITION
-		float4 newVH = Sample(LogInsertionVolume, samplerLogInsertionVolume, id.xyz); //* _dTime;
-		LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
-		 
 		//get our current data from the texture
         //DIFFUSE the neighbor cells into it slightly to try for spreading?
-        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p) //+ newVH
-			+ Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, _dTime, 0))
+        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p); //+ newVH;
+	/*		+ Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, _dTime, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -_dTime, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(_dTime, 0, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(-_dTime, 0, 0))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, _dTime))
 			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -_dTime));
-		velocityHeat /= 7.0;
+		velocityHeat /= 7.0;   all of these samples were too expensive */
 
-		velocityHeat += newVH;
-		velocityHeat.a = max(velocityHeat.a, 0.005);
-
-		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p)
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, _dTime * 4.0, 0))
+		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
+     /*    + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, _dTime * 4.0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, -_dTime * 4.0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(_dTime * 4.0, 0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(-_dTime * 4.0, 0, 0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, _dTime * 4.0))
          + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, -_dTime * 4.0));
-		 fuelSmoke /= 7.0;
+		 fuelSmoke /= 7.0;*/
+		 
+		 float4 noiseSample = NoiseTex.SampleLevel(samplerNoiseTex, (p.xz / 128.0) + float2(_Time * 10.5, _Time * 20.3), 0);
 
-		 fuelSmoke.y += newVH.a;
+		//OUTSIDE ADDITION
+		float newH = LogInsertionVolumeRW[id.xyz];
+        //    * (noiseSample.x * 0.3 + 0.7);
+		LogInsertionVolumeRW[id.xyz] = 0 ;
+
+	    /* this does nothing (since we're not projecting i think?) - lets replace it with background noise
+		velocityHeat.xyz += (newH * 00 
+            * (NoiseTex.SampleLevel(samplerNoiseTex, p.xz * 0.1 + float2(_Time * 0.1, _Time * 0.08), 0).xyz
+				* float3(1, 0.5, 1)
+				- float3(0.25, 0, 0.25))
+			); */
+		velocityHeat.a += newH * 1.0;
+		fuelSmoke.y += newH * 0.005;
+
+		 //BACKGROUND HEAT / MAX HEAT
+		 velocityHeat.a = clamp(velocityHeat.a, 0.40, 1.075);
 
 		//ADVECTION
         //evolve forward to get the naive estimation
-		float3 samplePos = p - velocityHeat.xyz * _dTime;
+		float3 samplePos = p - velocityHeat.xyz * _dTime * 1.0;
         float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
 		float4 fwdEvolvedFuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, samplePos);
 
 		//move forward and then back and then see what the difference is - that's our error sampling position
 		samplePos = (samplePos // fast forward 
-							+ fwdEvolvedVelocityHeat.xyz * _dTime); // rewind
+							+ fwdEvolvedVelocityHeat.xyz * _dTime * 1.0); // rewind
 		
 		//the error is accumulated over 2 timesteps so cut it in half and that's our correction
 		float4 correctedForwardVH = 
@@ -80,85 +89,75 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 				(Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, samplePos)
 				- fuelSmoke) / 2.0
 			);
-        
-		//HEAT = UPWARD ACCELERATION  - add a const to account for ambient heat - moved const up to right after sample, min
-		correctedForwardVH.y += (correctedForwardVH.a) * 10.0 * _dTime;
-
-		//COOLING and DISSIPATION
-	//	correctedForwardVH.a = max(0.005, correctedForwardVH.a - pow(correctedForwardVH.a * 20, 3) * 10000000.0 * _dTime);
+		//HEAT = UPWARD ACCELERATION  
+		correctedForwardVH.y += (correctedForwardVH.a) * 70.0 * _dTime;
+		
+		//COOLING and DISSIPATION 
+		correctedForwardVH.a -= pow(correctedForwardVH.a * 1, 3) * 1.0 * _dTime;
         //correctedForwardFS.y = max(0.0, correctedForwardFS.y - pow(correctedForwardFS.y, 1) * 0.2 * _dTime); //smoke density
+		//friction or something for velocity here too
+	/*	correctedForwardVH.xyz = lerp(
+			correctedForwardVH.xyz, //lerp from our velocity to environmental velocity by a damping factor
+			noiseSample.xyz * 50.0.xxx - 25.0.xxx,
+			(_dTime * 3.0).xxx
+		);*/
 
 		//aaaand write out to texture
         //BUT AT SOME POINT WE SHOULD PROJECT A BIT FORWARD TOO BY VELOCITY OTHERWISE WE GETTIN NOWHERES - how do tho
         HeatSimVolumeNext[id.xyz] = correctedForwardVH;
 		correctedForwardFS.x = correctedForwardVH.a; //copying to the other tex so we can sample just one in frag
+		correctedForwardFS.y = clamp(correctedForwardFS.y, 0, 1);
         FuelSmokeSimVolNext[id.xyz] = correctedForwardFS;
+
     }    
 } 
 
+#define INSERTION_SCALE 10
+
 void insert(int3 index, float3 pos, float heat){
-	LogInsertionVolumeRW[index] += float4(
-		(heat * 2000000.0 
-            * (NoiseTex.SampleLevel(samplerNoiseTex, pos.xy * 0.1 + float2(_Time, _Time * 0.8), 0).xyz 
-				* float3(1, 0.5, 1)
-				- float3(0.25, 0, 0.25))
-		), 
-		heat * pInfluence(distance(index, pos)) * 1.0
-	);
+	LogInsertionVolumeRW[index] += heat * pInfluence(distance(float3(index), pos)) * 1.0;
 }
 
 void insertXRow(int3 index, float3 p, float v){
-	index.x--;
+	index.x -= INSERTION_SCALE;
 	insert(index, p, v);
-	index.x++;
-	insert(index, p, v);
-	index.x++; 
-	insert(index, p, v);
-	index.x -= 2;
+	for(int i = 0; i < INSERTION_SCALE * 2; i++) {
+		index.x++;
+		insert(index, p, v);
+	}
+	index.x -= INSERTION_SCALE;
 }
 
 void insertXYQuad(int3 index, float3 p, float v){
-	index.y--;
+	index.y -= INSERTION_SCALE;
 	insertXRow(index, p, v);
-	index.y++;
-	insertXRow(index, p, v);
-	index.y++; 
-	insertXRow(index, p, v);
-	index.y -= 2;
+	for(int i = 0; i < INSERTION_SCALE * 2; i++){
+		index.y++;
+		insertXRow(index, p, v);
+	}
+	index.y -= INSERTION_SCALE;
 }
 
 [numthreads(1,1,1)]
 void insert(uint3 id : SV_DispatchThreadID) {
 	//instead of just points, can we do actual geo? or like the full node map with connections and fill between them?
 	int3 index = round(newPoints[id.x].xyz);
-	index.z--;
+
+	index.z -= INSERTION_SCALE;
 	insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a); 
-	index.z++;
-	insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a);
-	index.z++;
-	insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a);
+	for(int i = 0; i < INSERTION_SCALE * 2; i++){
+		index.z++;
+		insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a);
+	}
 }
 
 [numthreads(1,1,1)]
 void clearLogVol(uint3 id : SV_DispatchThreadID) {
-	LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
+	LogInsertionVolumeRW[id.xyz] = 0.0;
 }
  
 [numthreads(1,1,1)]
 void testData(uint3 id : SV_DispatchThreadID) {
-    for (int y = 0; y < 25; y++) { //do this with 32 dispatches instead probably..
-        int3 cellIndex = int3(id.x, y, id.z);
-        float data = //id.z / 512.0;
-            min(
-                max(pow(1 - (abs(128.0 - cellIndex.z) / 128.0), 4), 0),
-                max(pow(1 - (abs(128.0 - cellIndex.x) / 128.0), 4), 0)
-            )
-            * max((50 - cellIndex.y) / 25.0, 0); //test obv
-
-        if(min(min(cellIndex.x, cellIndex.y), cellIndex.z) <= 0) data = 0;
-        if(max(max(cellIndex.x, cellIndex.y), cellIndex.z) >= 255) data = 0;
-        HeatSimVolumeNext[cellIndex] = float4(0,0,0,data);
-       // HeatSimVolumeLast[cellIndex] = data;   this is now read only which might break this testdata function..
-    }
+    insert(id.xyz + uint3(0, 10, 0), id.xyz + float3(0, 10, 0), 0.01);
 }
 

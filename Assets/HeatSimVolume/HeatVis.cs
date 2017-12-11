@@ -49,8 +49,9 @@ public class HeatVis : MonoBehaviour {
         ret.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
         ret.volumeDepth = 128;
         ret.wrapMode = TextureWrapMode.Clamp;
-        ret.filterMode = FilterMode.Bilinear;
+        ret.filterMode = FilterMode.Trilinear;
         ret.enableRandomWrite = true;
+        ret.antiAliasing = 8;
         ret.Create();
         return ret;
     }
@@ -98,11 +99,11 @@ public class HeatVis : MonoBehaviour {
 
         points = new Vector4[256];
         newPointsBuffer = new ComputeBuffer(256, sizeof(float) * 4);
-        logInsertionVolume = generate3DRenderTexture();
+        logInsertionVolume = generate3DRenderTexture(RenderTextureFormat.RFloat);
         logInsertionVolume.name = "insert";
         heatSimComputeShader.SetTexture(_insertKernel, "LogInsertionVolumeRW", logInsertionVolume);
-        heatSimComputeShader.SetTexture(_simulateKernel, "LogInsertionVolume", logInsertionVolume);
         heatSimComputeShader.SetTexture(_simulateKernel, "LogInsertionVolumeRW", logInsertionVolume);
+        heatSimComputeShader.SetTexture(_testDataKernel, "LogInsertionVolumeRW", logInsertionVolume);
         heatSimComputeShader.SetBuffer(_insertKernel, "newPoints", newPointsBuffer);
         heatSimComputeShader.SetTexture(_clearKernel, "LogInsertionVolumeRW", logInsertionVolume);
 
@@ -116,15 +117,15 @@ public class HeatVis : MonoBehaviour {
     public void submitPoints(Vector4[] newPoints) {
         StartCoroutine(submitHeatPoints_coroutine(newPoints));
     }
-    
+        
     IEnumerator submitHeatPoints_coroutine(Vector4[] newPoints) {
         int count = Mathf.Min(newPoints.Length, 256);
         for (int i = 0; i < count; i++) {
             //convert point to volume space
             points[i] = new Vector4( // + offset, * (make it 0->1) * resolution
-                Mathf.Clamp01((newPoints[i].x + 4) * 0.125f) * 128f- 0.5f, // 8 wide
-                Mathf.Clamp01((newPoints[i].y + 1) * 0.125f) * 128f - 0.5f, // 8 tall
-                Mathf.Clamp01((newPoints[i].z + 4) * 0.125f) * 128f - 0.5f, // 8 deep
+                Mathf.Clamp01((newPoints[i].x + 1f) * 0.5f) * 128f - 0.5f, // 1 wide
+                Mathf.Clamp01((newPoints[i].y + 0.1f) * 0.5f) * 128f - 0.5f, // 1 tall
+                Mathf.Clamp01((newPoints[i].z + 1f) * 0.5f) * 128f - 0.5f, // 1 deep
                 newPoints[i].w);
         }
         if (doInsert) {
@@ -150,13 +151,13 @@ public class HeatVis : MonoBehaviour {
             frustumNearV4[i] = transform.TransformPoint(frustumNear[i]);
             frustumFarV4[i] = transform.TransformPoint(frustumFar[i]);
 
-            frustumFarV4[i].x = (frustumFarV4[i].x + 4) * 0.125f; //moving to volume space
-            frustumFarV4[i].y = (frustumFarV4[i].y + 1) * 0.125f;
-            frustumFarV4[i].z = (frustumFarV4[i].z + 4) * 0.125f;
+            frustumFarV4[i].x = (frustumFarV4[i].x + 1f) * 0.5f; //moving to volume space
+            frustumFarV4[i].y = (frustumFarV4[i].y + 0.1f) * 0.5f;
+            frustumFarV4[i].z = (frustumFarV4[i].z + 1f) * 0.5f;
 
-            frustumNearV4[i].x = (frustumNearV4[i].x + 4) * 0.125f; //moving to volume space
-            frustumNearV4[i].y = (frustumNearV4[i].y + 1) * 0.125f;
-            frustumNearV4[i].z = (frustumNearV4[i].z + 4) * 0.125f;
+            frustumNearV4[i].x = (frustumNearV4[i].x + 1f) * 0.5f; //moving to volume space
+            frustumNearV4[i].y = (frustumNearV4[i].y + 0.1f) * 0.5f;
+            frustumNearV4[i].z = (frustumNearV4[i].z + 1f) * 0.5f;
         }
         
         Shader.SetGlobalVector("_FrustumNearBottomLeft", frustumNearV4[0]);
@@ -167,10 +168,16 @@ public class HeatVis : MonoBehaviour {
         Shader.SetGlobalVector("_FrustumFarTopRight", frustumFarV4[2]);
         Shader.SetGlobalVector("_FrustumNearBottomRight", frustumNearV4[3]);
         Shader.SetGlobalVector("_FrustumFarBottomRight", frustumFarV4[3]);
+
+        var volSpaceCamPos = new Vector3();
+        volSpaceCamPos.x = (transform.position.x + 1f) * 0.5f; //moving to volume space
+        volSpaceCamPos.y = (transform.position.y + 0.1f) * 0.5f;
+        volSpaceCamPos.z = (transform.position.z + 1f) * 0.5f;
+        Shader.SetGlobalVector("_VolSpaceCamPos", volSpaceCamPos);
     }
     
 
-    void Update() {
+    void FixedUpdate() {
         //if (transform.hasChanged) {  doesn't account for when screen parameters change...
         OnFrustumMoved();
 
@@ -191,9 +198,6 @@ public class HeatVis : MonoBehaviour {
             heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolNext", vol12toggle ? fuelSmokeSimVol1 : fuelSmokeSimVol2);
             heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolLast", vol12toggle ? fuelSmokeSimVol2 : fuelSmokeSimVol1);
             
-          //  heatSimComputeShader.SetTexture(_simulateKernel, "LogInsertionVolume", vol12toggle ? logInsertionVolume1 : logInsertionVolume2);
-         //   heatSimComputeShader.SetTexture(_insertKernel, "LogInsertionVolumeRW", logInsertionVolume1 : logInsertionVolume2);
-
             Shader.SetGlobalTexture("_HeatSimVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
             Shader.SetGlobalTexture("_FuelSmokeVolume", vol12toggle ? fuelSmokeSimVol2 : fuelSmokeSimVol1);
         }

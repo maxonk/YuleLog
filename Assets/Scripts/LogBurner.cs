@@ -47,11 +47,16 @@ public class LogBurner : MonoBehaviour, HeatSource {
     IEnumerator generateHeatPoints_coroutine() {
         Vector4[] heatPoints = new Vector4[burnSimMap.Length];
         for (int i = 0; i < heatPoints.Length; i++) heatPoints[i] = new Vector4();
+       // float xInfluence, yInfluence;
         while (isActiveAndEnabled) {
             for(int i = 0; i < burnSimMap.Length; i++) {
                 var node = burnSimMap[i];
+
+             //   xInfluence = UnityEngine.Random.Range(-0.5f, 0.5f);
+             //   yInfluence = UnityEngine.Random.Range(-0.5f, 0.5f);
+                
                 heatPoints[i] = transform.TransformPoint(burnSimMap[i].position);
-                heatPoints[i].w = burnSimMap[i].heat * Time.deltaTime;
+                heatPoints[i].w = burnSimMap[i].heat * Time.deltaTime * 10f;
             }
             HeatVis.SubmitHeatPoints(heatPoints);
             yield return null;
@@ -195,7 +200,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
         float _heat;
         public float heat {
             get {
-                return _heat * fuel * _log.heatScaleModifier;
+                return _heat * _log.heatScaleModifier;
             }
             private set {
                 _heat = Mathf.Clamp01(value);
@@ -224,7 +229,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
         }
         public void calculate() {
             foreach (BurnSimNode connection in connections) {
-                deltaHeat += connection.heat * _log.heatTransferModifier;
+                deltaHeat += connection.heat * fuel * _log.heatTransferModifier;
             }
             deltaHeat *= UnityEngine.Random.Range(-0.35f, 1f);
 
