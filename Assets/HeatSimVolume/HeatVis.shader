@@ -53,8 +53,8 @@
 				return o;
 			}
 
-			#define numStepsToFullHeat 10.0
-			#define minVisibleHeat 0.55
+			#define numStepsToFullHeat 8.0
+			#define minVisibleHeat 0.525
 			#define maxHeat 1.075
 					
 			float3 smokeVisHeatNext(float3 pos, float3 smokeVisHeatLast){

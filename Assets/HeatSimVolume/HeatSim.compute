@@ -5,10 +5,10 @@
 
 RWTexture3D<float4> HeatSimVolumeNext, FuelSmokeSimVolNext;
 Texture3D<float4> HeatSimVolumeLast, FuelSmokeSimVolLast; //255
-RWTexture3D<float> LogInsertionVolumeRW;
+RWTexture3D<float4> LogInsertionVolumeRW;
 Texture2D<float4> NoiseTex;
 SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast, samplerNoiseTex;
-RWStructuredBuffer<float4> newPoints; //length 256 
+RWStructuredBuffer<float4> newPoints, newVelocity; //length 256 
 float _Time, _dTime;
 
 float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
@@ -16,7 +16,7 @@ float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
 }
 
 float pInfluence(float distToP){
-	return smoothstep(0, 1, pow(saturate((3.05 - distToP) / 3.05), 2));
+	return smoothstep(0, 1, pow(saturate((2.8 - distToP) / 2.8), 2));
 }
 
 [numthreads(1,1,1)]
@@ -50,12 +50,12 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		 float4 noiseSample = NoiseTex.SampleLevel(samplerNoiseTex, (p.xz / 128.0) + float2(_Time * 1.5, _Time * 2.3), 0);
 
 		//OUTSIDE ADDITION
-		float newH = LogInsertionVolumeRW[id.xyz];
-		LogInsertionVolumeRW[id.xyz] = 0 ;
-
-		velocityHeat.y += newH * 0.1;
-		velocityHeat.a += newH * 0.8;
-		fuelSmoke.y += newH * 0.01;
+		float4 newVH = LogInsertionVolumeRW[id.xyz];
+		LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
+		velocityHeat.xyz += newVH.xyz;
+		velocityHeat.y += newVH.a * 0.1;
+		velocityHeat.a += newVH.a * 0.8;
+		fuelSmoke.y += newVH.a * 0.01;
 
 		 //BACKGROUND HEAT / MAX HEAT
 		 velocityHeat.a = clamp(velocityHeat.a, 0.40, 1.075);
@@ -115,30 +115,31 @@ void simulate(uint3 id : SV_DispatchThreadID) {
     }    
 } 
 
-#define INSERTION_SCALE 10
+#define INSERTION_SCALE 8
 
-void insert(int3 index, float3 pos, float heat){
-	LogInsertionVolumeRW[index] += heat * pInfluence(distance(float3(index), pos)) * 1.0;
+void insert(int3 index, float3 pos, float3 velocity, float heat){
+	LogInsertionVolumeRW[index] += 
+		float4(velocity, heat) * pInfluence(distance(float3(index), pos));
 }
 
-void insertXRow(int3 index, float3 p, float v){
+void insertXRow(int3 index, float3 pos, float3 velocity, float heat){
 	index.x -= INSERTION_SCALE;
-	insert(index, p, v);
+	insert(index, pos, velocity, heat);
 	for(int i = 0; i < INSERTION_SCALE * 2; i++) {
 		index.x++;
-		insert(index, p, v);
+		insert(index, pos, velocity, heat);
 	}
 	index.x -= INSERTION_SCALE;
 }
 
-void insertXYQuad(int3 index, float3 p, float v){
+void insertXYQuad(int3 index, float3 pos, float3 velocity, float heat){
 	index.y -= INSERTION_SCALE;
-	insertXRow(index, p, v);
+	insertXRow(index, pos, velocity, heat);
 	for(int i = 0; i < INSERTION_SCALE * 2; i++){
 		index.y++;
-		insertXRow(index, p, v);
+		insertXRow(index, pos, velocity, heat);
 	}
-	index.y -= INSERTION_SCALE;
+	index.y -= INSERTION_SCALE; 
 }
 
 [numthreads(1,1,1)]
@@ -147,12 +148,12 @@ void insert(uint3 id : SV_DispatchThreadID) {
 	int3 index = round(newPoints[id.x].xyz);
 
 	index.z -= INSERTION_SCALE;
-	insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a); 
+	insertXYQuad(index, newPoints[id.x].xyz, newVelocity[id.x].xyz, newPoints[id.x].a); 
 	for(int i = 0; i < INSERTION_SCALE * 2; i++){
 		index.z++;
-		insertXYQuad(index, newPoints[id.x].xyz, newPoints[id.x].a);
+		insertXYQuad(index, newPoints[id.x].xyz, newVelocity[id.x].xyz, newPoints[id.x].a);
 	}
-}
+} 
 
 [numthreads(1,1,1)]
 void clearLogVol(uint3 id : SV_DispatchThreadID) {
@@ -161,6 +162,6 @@ void clearLogVol(uint3 id : SV_DispatchThreadID) {
  
 [numthreads(1,1,1)]
 void testData(uint3 id : SV_DispatchThreadID) {
-    insert(id.xyz + uint3(0, 10, 0), id.xyz + float3(0, 10, 0), 0.01);
+    insert(id.xyz + uint3(0, 10, 0), id.xyz + float3(0, 10, 0), id.xyz + float3(0,10,0), 0.01);
 }
 

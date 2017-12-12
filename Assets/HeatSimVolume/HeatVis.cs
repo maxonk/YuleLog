@@ -31,11 +31,11 @@ public class HeatVis : MonoBehaviour {
         logInsertionVolume; //todo: write into this from points in _insert, draw from it in _simulate
     bool vol12toggle = false;
 
-    ComputeBuffer newPointsBuffer, heatMapBuffer;
+    ComputeBuffer newPointsBuffer, newVelocityBuffer, heatMapBuffer;
 
     int _simulateKernel, _testDataKernel, _insertKernel, _clearKernel;
 
-    static Vector4[] points;
+    static Vector4[] points, velocities;
 
     Vector3[] frustumNear, frustumFar;
     Vector4[] frustumNearV4, frustumFarV4;
@@ -98,13 +98,16 @@ public class HeatVis : MonoBehaviour {
         Shader.SetGlobalTexture("_FuelSmokeVolume", fuelSmokeSimVol2);
 
         points = new Vector4[256];
+        velocities = new Vector4[256];
         newPointsBuffer = new ComputeBuffer(256, sizeof(float) * 4);
-        logInsertionVolume = generate3DRenderTexture(RenderTextureFormat.RFloat);
+        newVelocityBuffer = new ComputeBuffer(256, sizeof(float) * 4);
+        logInsertionVolume = generate3DRenderTexture();
         logInsertionVolume.name = "insert";
         heatSimComputeShader.SetTexture(_insertKernel, "LogInsertionVolumeRW", logInsertionVolume);
         heatSimComputeShader.SetTexture(_simulateKernel, "LogInsertionVolumeRW", logInsertionVolume);
         heatSimComputeShader.SetTexture(_testDataKernel, "LogInsertionVolumeRW", logInsertionVolume);
         heatSimComputeShader.SetBuffer(_insertKernel, "newPoints", newPointsBuffer);
+        heatSimComputeShader.SetBuffer(_insertKernel, "newVelocity", newVelocityBuffer);
         heatSimComputeShader.SetTexture(_clearKernel, "LogInsertionVolumeRW", logInsertionVolume);
 
         camera.depthTextureMode = DepthTextureMode.Depth;
@@ -127,9 +130,16 @@ public class HeatVis : MonoBehaviour {
                 Mathf.Clamp01((newPoints[i].y + 0.1f) * 0.5f) * 128f - 0.5f, // 1 tall
                 Mathf.Clamp01((newPoints[i].z + 1f) * 0.5f) * 128f - 0.5f, // 1 deep
                 newPoints[i].w);
+            velocities[i] = new Vector4(
+                Random.Range(-1f, 1f),
+                Random.Range(-1f, 1f),
+                Random.Range(-1f, 1f),
+                0
+                ) * Time.deltaTime * 500f;
         }
         if (doInsert) {
             newPointsBuffer.SetData(points, 0, 0, count);
+            newVelocityBuffer.SetData(velocities, 0, 0, count);
             heatSimComputeShader.Dispatch(_insertKernel, count, 1, 1);
         }
         yield return null;
@@ -210,6 +220,7 @@ public class HeatVis : MonoBehaviour {
     
     private void OnDisable() {
         newPointsBuffer.Release();
+        newVelocityBuffer.Release();
         DestroyImmediate(velocityHeatSimVol1);
         DestroyImmediate(velocityHeatSimVol2);
         velocityHeatSimVol1 = null;
