@@ -56,7 +56,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
              //   yInfluence = UnityEngine.Random.Range(-0.5f, 0.5f);
                 
                 heatPoints[i] = transform.TransformPoint(burnSimMap[i].position);
-                heatPoints[i].w = burnSimMap[i].heat * Time.deltaTime * 10f;
+                heatPoints[i].w = burnSimMap[i].heat;
             }
             HeatVis.SubmitHeatPoints(heatPoints);
             yield return null;

@@ -15,9 +15,9 @@ float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
 	return tex.SampleLevel(ss, saturate(p * float3(1.0 / 128.0, 1.0 / 128.0, 1.0 / 128.0)), 0);
 }
 
-float pInfluence(float distToP){
-	return smoothstep(0, 1, pow(saturate((2.8 - distToP) / 2.8), 2));
-}
+#define MIN_HEAT 0.4
+#define MAX_HEAT 1.075
+#define AMBIENT_MASS 0.000001
 
 [numthreads(1,1,1)]
 void simulate(uint3 id : SV_DispatchThreadID) {
@@ -28,34 +28,21 @@ void simulate(uint3 id : SV_DispatchThreadID) {
         float3 p = (float3)id.xyz + float3(0.5, 0.5, 0.5);
         
 		//get our current data from the texture
-        //DIFFUSE the neighbor cells into it slightly to try for spreading?
-        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p); //+ newVH;
-		/*	+ Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, _dTime, 0))
-			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, -_dTime, 0))
-			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(_dTime, 0, 0))
-			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(-_dTime, 0, 0))
-			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, _dTime))
-			 + Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p + float3(0, 0, -_dTime));
-		velocityHeat /= 7.0; //  all of these samples were too expensive */
-
+        float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p); 
 		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
-      /*   + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, _dTime * 4.0, 0))
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, -_dTime * 4.0, 0))
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(_dTime * 4.0, 0, 0))
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(-_dTime * 4.0, 0, 0))
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, _dTime * 4.0))
-         + Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p + float3(0, 0, -_dTime * 4.0));
-		 fuelSmoke /= 7.0; */
 		 
-		 float4 noiseSample = NoiseTex.SampleLevel(samplerNoiseTex, (p.xz / 128.0) + float2(_Time * 1.5, _Time * 2.3), 0);
+		float4 noiseSample = NoiseTex.SampleLevel(samplerNoiseTex, (p.xz / 128.0) + float2(_Time * 1.5, _Time * 2.3), 0);
 
 		//OUTSIDE ADDITION
 		float4 newVH = LogInsertionVolumeRW[id.xyz];
 		LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
 		velocityHeat.xyz += newVH.xyz;
 		velocityHeat.y += newVH.a * 0.1;
-		velocityHeat.a += newVH.a * 0.8;
-		fuelSmoke.y += newVH.a * 0.01;
+		velocityHeat.a += newVH.a * 1.0;
+//		fuelSmoke.y += newVH.a * 0.001;
+
+		//GENERATE SMOKE FROM BURNING IMAGINARY FUEL
+		fuelSmoke.y += (velocityHeat.a - MIN_HEAT) * 0.001 * _dTime;
 
 		 //BACKGROUND HEAT / MAX HEAT
 		 velocityHeat.a = clamp(velocityHeat.a, 0.40, 1.075);
@@ -83,39 +70,65 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 				(Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, samplePos)
 				- fuelSmoke) / 2.0
 			);
-		//HEAT = UPWARD ACCELERATION  
-		correctedForwardVH.y += (correctedForwardVH.a) * 20.0 * _dTime;
-		
-		//COOLING and DISSIPATION 
-		correctedForwardVH.a -= pow(max(0, correctedForwardVH.a - 0.4) * 2, 3) * 1.0 * _dTime;
-        //correctedForwardFS.y = max(0.0, correctedForwardFS.y - pow(correctedForwardFS.y, 1) * 0.2 * _dTime); //smoke density
-		
-		
-	  //   this does nothing (since we're not projecting i think?) - lets replace it with background noise
-	//	velocityHeat.xyz += 10.0 * newH * (noiseSample);
 
-		//friction or something for velocity here too
-	//	correctedForwardVH.xyz += 
+		//HEAT = UPWARD ACCELERATION  
+		correctedForwardVH.y += 
+			(correctedForwardVH.a * 120.0) /// (correctedForwardFS.y)  // force here is heat * constant
+			* _dTime;
+
+		//GRAVITY PULLS SMOKE
+		correctedForwardVH.y -=			//		dx =                       F = ma ... a = F/m ... a = dx / dt
+			(0.000005 / max(correctedForwardFS.y, AMBIENT_MASS))	//		(Force	/	Mass)
+			*	_dTime;						//			*	deltaTime
+					
+		//COOLING
+		correctedForwardVH.a -= _dTime * //time scaled
+			pow(
+				saturate(correctedForwardVH.a - MIN_HEAT / (MAX_HEAT - MIN_HEAT)), 
+				4) //pow curve height - this is a constant suggested by nvidia
+			* 150.0; //constant factor
+		
+		//DISSIPATION OF SMOKE
+	/*	correctedForwardFS.y -= _dTime * //time scaled
+			pow(
+				correctedForwardFS.y,  //more influence when theres more smoke - friction-like
+				1.25) //pow curve height - higher means the dissipation output is more forgiving in the middle range
+			* 10.0; //constant factor  */
+
+		//ASSIGNING OUR OUTPUT
+		//clamping ranges here too
+		correctedForwardVH.a = clamp(correctedForwardVH.a, MIN_HEAT, MAX_HEAT);
+		correctedForwardFS.x = correctedForwardVH.a; //copying to the other tex so we can sample just one in frag
+		correctedForwardFS.y = clamp(correctedForwardFS.y, 0, 1);
 	/*	correctedForwardVH.xyz = lerp( 
 			correctedForwardVH.xyz, //lerp from our velocity to environmental velocity by a damping factor
 			noiseSample.xyz * (10.0.xxx) - (2.50.xxx),
 			(_dTime * 5.00).xxx 
 		);*/
 		
-		//clamping to stop weirdness??
-		correctedForwardVH.a = clamp(correctedForwardVH.a, 0.4, 1.075);
 
 		//aaaand write out to texture
         //BUT AT SOME POINT WE SHOULD PROJECT A BIT FORWARD TOO BY VELOCITY OTHERWISE WE GETTIN NOWHERES - how do tho
         HeatSimVolumeNext[id.xyz] = correctedForwardVH;
-		correctedForwardFS.x = correctedForwardVH.a; //copying to the other tex so we can sample just one in frag
-		correctedForwardFS.y = clamp(correctedForwardFS.y, 0, 1);
         FuelSmokeSimVolNext[id.xyz] = correctedForwardFS;
 
     }    
 } 
 
-#define INSERTION_SCALE 8
+//REGION -- INSERTION ------------------------------------------------------------------------------------------------
+
+#define INSERTION_SCALE 6
+
+#define P_INFLUENCE_DIST_MAX 2.50
+#define P_INFLUENCE_DIST_MIN 1.50
+float pInfluence(float distToP){
+	return 
+		(1 - //invert
+			saturate( //remap my distance from 1.0-->2.8 space to 0.0-->1.0 space
+				(distToP - P_INFLUENCE_DIST_MIN) / (P_INFLUENCE_DIST_MAX - P_INFLUENCE_DIST_MIN)
+			)
+		);
+}
 
 void insert(int3 index, float3 pos, float3 velocity, float heat){
 	LogInsertionVolumeRW[index] += 
