@@ -53,7 +53,7 @@
 				return o;
 			}
 
-			#define numStepsToFullHeat 12.0
+			#define numStepsToFullHeat 10.0
 			#define minVisibleHeat 0.7
 			#define maxHeat 1.075
 					

@@ -42,7 +42,7 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 //		fuelSmoke.y += newVH.a * 0.001;
 
 		//GENERATE SMOKE FROM BURNING IMAGINARY FUEL
-		fuelSmoke.y += (velocityHeat.a - MIN_HEAT) * 0.001 * _dTime;
+		//fuelSmoke.y += (velocityHeat.a - MIN_HEAT) * 0.001 * _dTime;
 
 		 //BACKGROUND HEAT / MAX HEAT
 		 velocityHeat.a = clamp(velocityHeat.a, 0.40, 1.075);
