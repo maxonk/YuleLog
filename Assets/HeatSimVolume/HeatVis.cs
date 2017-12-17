@@ -130,12 +130,13 @@ public class HeatVis : MonoBehaviour {
                 Mathf.Clamp01((newPoints[i].y + 0.1f) * 0.5f) * 128f - 0.5f, // 1 tall
                 Mathf.Clamp01((newPoints[i].z + 1f) * 0.5f) * 128f - 0.5f, // 1 deep
                 newPoints[i].w * 12500f * Time.deltaTime);
+            var randomVelocity = Random.insideUnitSphere;
             velocities[i] = new Vector4(
-                Random.Range(-1f, 1f),
-                Random.Range(-1f, 1f),
-                Random.Range(-1f, 1f),
+                randomVelocity.x,
+                randomVelocity.y,
+                randomVelocity.z,
                 0
-                ) * Time.deltaTime * 250f;
+                ) * Time.deltaTime * 50f;
         }
         if (doInsert) {
             newPointsBuffer.SetData(points, 0, 0, count);
