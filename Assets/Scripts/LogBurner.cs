@@ -32,6 +32,8 @@ public class LogBurner : MonoBehaviour, HeatSource {
     public float scaleModifier = 1f;
 
 	void Start() {
+
+        
         logRenderer = GetComponentInChildren<LogRenderer>();
         logRenderer.setup(this);
 
@@ -50,11 +52,7 @@ public class LogBurner : MonoBehaviour, HeatSource {
        // float xInfluence, yInfluence;
         while (isActiveAndEnabled) {
             for(int i = 0; i < burnSimMap.Length; i++) {
-                var node = burnSimMap[i];
-
-             //   xInfluence = UnityEngine.Random.Range(-0.5f, 0.5f);
-             //   yInfluence = UnityEngine.Random.Range(-0.5f, 0.5f);
-                
+                var node = burnSimMap[i];                
                 heatPoints[i] = transform.TransformPoint(burnSimMap[i].position);
                 heatPoints[i].w = burnSimMap[i].heat;
             }

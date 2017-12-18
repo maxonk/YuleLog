@@ -16,11 +16,15 @@ public class LogRenderer : MonoBehaviour {
         mesh = meshFilter.mesh;
         mesh.MarkDynamic();
         vertices = mesh.vertices;
+        for(int i = 0; i < vertices.Length; i ++){
+            vertices[i] += Vector3.Scale(UnityEngine.Random.insideUnitSphere, new Vector3(0.25f, 0.05f, 0.05f));
+        }
+        mesh.vertices = vertices;
         colors_sim = new Color[vertices.Length];
         colors_old = new Color[vertices.Length];
         colors_lerp = new Color[vertices.Length];
         for(int i = 0; i < colors_sim.Length; i++) {
-            colors_sim[i] = gradient.Evaluate(0f);
+            colors_sim[i] = Color.black;
             colors_old[i] = colors_lerp[i] = colors_sim[i];
         }
         mesh.colors = colors_lerp;
@@ -29,7 +33,7 @@ public class LogRenderer : MonoBehaviour {
     public void updateFromSim(LogBurner.BurnSimNode[] burnSimMap, float updateTime) {
         Array.Copy(colors_lerp, colors_old, colors_old.Length);
         for (int i = 0; i < burnSimMap.Length; i++) {
-            colors_sim[i] = gradient.Evaluate(burnSimMap[i].heat);
+            colors_sim[i].r = burnSimMap[i].heat;
             vertices[i] = burnSimMap[i].position;
         }
         mesh.vertices = vertices;

@@ -5,6 +5,8 @@ using UnityEngine.Rendering;
 
 public class HeatVis : MonoBehaviour {
 
+    const int k_VolSize = 128;
+
     static HeatVis _instance;
     public static HeatVis instance {
         get {
@@ -27,7 +29,6 @@ public class HeatVis : MonoBehaviour {
     [SerializeField]
     RenderTexture
         velocityHeatSimVol1, velocityHeatSimVol2,
-        fuelSmokeSimVol1, fuelSmokeSimVol2,
         logInsertionVolume; //todo: write into this from points in _insert, draw from it in _simulate
     bool vol12toggle = false;
 
@@ -45,9 +46,9 @@ public class HeatVis : MonoBehaviour {
     [SerializeField] bool doSimulate, doInsert, doBlit, doClear, doFrustumUpdate, doSetTex;
 
     RenderTexture generate3DRenderTexture(RenderTextureFormat format = RenderTextureFormat.ARGBHalf) {
-        var ret = new RenderTexture(128, 128, 0, format);
+        var ret = new RenderTexture(k_VolSize, k_VolSize, 0, format);
         ret.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
-        ret.volumeDepth = 128;
+        ret.volumeDepth = k_VolSize;
         ret.wrapMode = TextureWrapMode.Clamp;
         ret.filterMode = FilterMode.Trilinear;
         ret.enableRandomWrite = true;
@@ -79,23 +80,11 @@ public class HeatVis : MonoBehaviour {
         heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", velocityHeatSimVol2);
         heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolumeLast", velocityHeatSimVol2);
 
-        fuelSmokeSimVol1 = generate3DRenderTexture();
-        fuelSmokeSimVol1.name = "FS 1";
-        heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolNext", fuelSmokeSimVol1);
-        heatSimComputeShader.SetTexture(_testDataKernel, "FuelSmokeSimVolNext", fuelSmokeSimVol1);
-        heatSimComputeShader.SetTexture(_insertKernel, "FuelSmokeSimVolNext", fuelSmokeSimVol1);
-
         heatSimComputeShader.SetTexture(_simulateKernel, "NoiseTex", noiseTex);
         heatSimComputeShader.SetTexture(_insertKernel, "NoiseTex", noiseTex);
 
-        fuelSmokeSimVol2 = generate3DRenderTexture();
-        fuelSmokeSimVol2.name = "FS 2";
-        heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolLast", fuelSmokeSimVol2);
-        heatSimComputeShader.SetTexture(_testDataKernel, "FuelSmokeSimVolLast", fuelSmokeSimVol2);
-        
         Shader.SetGlobalTexture("_NoiseTex", noiseTex);
         Shader.SetGlobalTexture("_VelocityHeatVolume", velocityHeatSimVol2);
-        Shader.SetGlobalTexture("_FuelSmokeVolume", fuelSmokeSimVol2);
 
         points = new Vector4[256];
         velocities = new Vector4[256];
@@ -126,17 +115,17 @@ public class HeatVis : MonoBehaviour {
         for (int i = 0; i < count; i++) {
             //convert point to volume space
             points[i] = new Vector4( // + offset, * (make it 0->1) * resolution
-                Mathf.Clamp01((newPoints[i].x + 1f) * 0.5f) * 128f - 0.5f, // 1 wide
-                Mathf.Clamp01((newPoints[i].y + 0.1f) * 0.5f) * 128f - 0.5f, // 1 tall
-                Mathf.Clamp01((newPoints[i].z + 1f) * 0.5f) * 128f - 0.5f, // 1 deep
-                newPoints[i].w * 12500f * Time.deltaTime);
+                Mathf.Clamp01((newPoints[i].x + 1f) * 0.5f) * ((float)k_VolSize) - 0.5f, // 1 wide
+                Mathf.Clamp01((newPoints[i].y + 0.1f) * 0.5f) * ((float)k_VolSize) - 0.5f, // 1 tall
+                Mathf.Clamp01((newPoints[i].z + 1f) * 0.5f) * ((float)k_VolSize) - 0.5f, // 1 deep
+                newPoints[i].w * 10000f * Time.deltaTime);
             var randomVelocity = Random.insideUnitSphere;
             velocities[i] = new Vector4(
                 randomVelocity.x,
                 randomVelocity.y,
                 randomVelocity.z,
                 0
-                ) * Time.deltaTime * 50f;
+            ) * Time.deltaTime * 10000f * newPoints[i].w;
         }
         if (doInsert) {
             newPointsBuffer.SetData(points, 0, 0, count);
@@ -146,6 +135,7 @@ public class HeatVis : MonoBehaviour {
         yield return null;
     }
 
+    [ImageEffectOpaque]
     void OnRenderImage(RenderTexture source, RenderTexture destination) {
         if (doBlit) {
             Graphics.Blit(source, destination, visualizationMaterial);
@@ -194,9 +184,9 @@ public class HeatVis : MonoBehaviour {
 
         if (Input.GetKeyDown(KeyCode.F)) {
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol1);
-            heatSimComputeShader.Dispatch(_testDataKernel, 128, 1, 128);
+            heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol2);
-            heatSimComputeShader.Dispatch(_testDataKernel, 128, 1, 128);
+            heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
         }
 
         heatSimComputeShader.SetFloat("_Time", Time.time);
@@ -206,15 +196,12 @@ public class HeatVis : MonoBehaviour {
         if (doSetTex) {
             heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeNext", vol12toggle ? velocityHeatSimVol1 : velocityHeatSimVol2);
             heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
-            heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolNext", vol12toggle ? fuelSmokeSimVol1 : fuelSmokeSimVol2);
-            heatSimComputeShader.SetTexture(_simulateKernel, "FuelSmokeSimVolLast", vol12toggle ? fuelSmokeSimVol2 : fuelSmokeSimVol1);
-            
+
             Shader.SetGlobalTexture("_HeatSimVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
-            Shader.SetGlobalTexture("_FuelSmokeVolume", vol12toggle ? fuelSmokeSimVol2 : fuelSmokeSimVol1);
         }
 
-        if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, 128, 128, 128);
-        if (doClear) heatSimComputeShader.Dispatch(_clearKernel, 128, 128, 128);
+        if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, k_VolSize, k_VolSize, k_VolSize);
+        if (doClear) heatSimComputeShader.Dispatch(_clearKernel, k_VolSize, k_VolSize, k_VolSize);
 
         vol12toggle = !vol12toggle;
     }

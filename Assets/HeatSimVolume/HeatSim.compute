@@ -3,124 +3,101 @@
 #pragma kernel clearLogVol
 #pragma kernel testData
 
-RWTexture3D<float4> HeatSimVolumeNext, FuelSmokeSimVolNext;
-Texture3D<float4> HeatSimVolumeLast, FuelSmokeSimVolLast; //255
+RWTexture3D<float4> HeatSimVolumeNext;
+Texture3D<float4> HeatSimVolumeLast; //255
 RWTexture3D<float4> LogInsertionVolumeRW;
 Texture2D<float4> NoiseTex;
-SamplerState samplerHeatSimVolumeLast, samplerFuelSmokeSimVolLast, samplerNoiseTex;
+SamplerState samplerHeatSimVolumeLast, samplerNoiseTex;
 RWStructuredBuffer<float4> newPoints, newVelocity; //length 256 
 float _Time, _dTime;
 
+#define VOL_SIZE 128.0
+#define INV_VOL_SIZE (1.0 / VOL_SIZE)
+
 float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
-	return tex.SampleLevel(ss, saturate(p * float3(1.0 / 128.0, 1.0 / 128.0, 1.0 / 128.0)), 0);
+	return tex.SampleLevel(ss, saturate(p * float3(INV_VOL_SIZE, INV_VOL_SIZE, INV_VOL_SIZE)), 0);
 }
 
-#define MIN_HEAT 0.4
+#define AMBIENT_HEAT 0.4
 #define MAX_HEAT 1.075
-#define AMBIENT_MASS 0.000001
+#define MAX_VELOCITY float3(60, 60, 60)
+#define AMBIENT_WIND_SCALE float3(45, 15, 45)
 
 [numthreads(1,1,1)]
 void simulate(uint3 id : SV_DispatchThreadID) {
      
     //compute HeatSimVolume from HeatSimVolumeLast neighbors
-    if(id.y > 0 && id.y < 127){
+    if(id.y > 0 && id.y < (VOL_SIZE - 1)){
 		// move to sample space from world right away and do ops here. this is bad and we should undo maybe if we can afford the ops? - it squashes velocity in the vertical i think...
         float3 p = (float3)id.xyz + float3(0.5, 0.5, 0.5);
         
 		//get our current data from the texture
         float4 velocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, p); 
-		float4 fuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, p);
 		 
-		float4 noiseSample = NoiseTex.SampleLevel(samplerNoiseTex, (p.xz / 128.0) + float2(_Time * 1.5, _Time * 2.3), 0);
-
 		//OUTSIDE ADDITION
 		float4 newVH = LogInsertionVolumeRW[id.xyz];
 		LogInsertionVolumeRW[id.xyz] = float4(0,0,0,0);
 		velocityHeat.xyz += newVH.xyz;
-		velocityHeat.y += newVH.a * 0.1;
-		velocityHeat.a += newVH.a * 1.0;
-//		fuelSmoke.y += newVH.a * 0.001;
+		velocityHeat.a += newVH.a;
 
-		//GENERATE SMOKE FROM BURNING IMAGINARY FUEL
-		//fuelSmoke.y += (velocityHeat.a - MIN_HEAT) * 0.001 * _dTime;
-
-		 //BACKGROUND HEAT / MAX HEAT
-		 velocityHeat.a = clamp(velocityHeat.a, 0.40, 1.075);
+		//BACKGROUND HEAT / MAX HEAT
+		velocityHeat.a = clamp(velocityHeat.a, AMBIENT_HEAT, MAX_HEAT);
 
 		//ADVECTION
         //evolve forward to get the naive estimation
 		float3 samplePos = p - velocityHeat.xyz * _dTime * 1.0;
         float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
-		float4 fwdEvolvedFuelSmoke = Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, samplePos);
 
 		//move forward and then back and then see what the difference is - that's our error sampling position
 		samplePos = (samplePos // fast forward 
 							+ fwdEvolvedVelocityHeat.xyz * _dTime * 1.0); // rewind
 		
 		//the error is accumulated over 2 timesteps so cut it in half and that's our correction
-		float4 correctedForwardVH = 
+		float4 correctedForwardVH =  
 			fwdEvolvedVelocityHeat - (
 				(Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos) //fwd evolved then back projected VH
 				- velocityHeat) / 2.0 //diff / 2 = correction
 			); 
-	//	correctedForwardVH.xyz = fwdEvolvedVelocityHeat.xyz;//nvidia says not to do fwdback correction for velocity for some reason?
-
-		float4 correctedForwardFS = 
-			fwdEvolvedFuelSmoke - (
-				(Sample(FuelSmokeSimVolLast, samplerFuelSmokeSimVolLast, samplePos)
-				- fuelSmoke) / 2.0
-			);
-
+			
 		//HEAT = UPWARD ACCELERATION  
-		correctedForwardVH.y += 
-			(correctedForwardVH.a * 120.0) /// (correctedForwardFS.y)  // force here is heat * constant
-			* _dTime;
-
-		//GRAVITY PULLS SMOKE
-		correctedForwardVH.y -=			//		dx =                       F = ma ... a = F/m ... a = dx / dt
-			(0.000005 / max(correctedForwardFS.y, AMBIENT_MASS))	//		(Force	/	Mass)
-			*	_dTime;						//			*	deltaTime
+		correctedForwardVH.y += _dTime * //time scaled  
+			((correctedForwardVH.a - AMBIENT_HEAT) * 45.0); /// (correctedForwardFS.y)  // force here is heat * constant
 					
 		//COOLING
-		correctedForwardVH.a -= _dTime * //time scaled
+		correctedForwardVH.a -= _dTime * //time scaled  
 			pow(
-				saturate(correctedForwardVH.a - MIN_HEAT / (MAX_HEAT - MIN_HEAT)), 
+				saturate(correctedForwardVH.a - AMBIENT_HEAT / (MAX_HEAT - AMBIENT_HEAT)), 
 				4) //pow curve height - this is a constant suggested by nvidia
-			* 150.0; //constant factor
-		
-		//DISSIPATION OF SMOKE
-	/*	correctedForwardFS.y -= _dTime * //time scaled
-			pow(
-				correctedForwardFS.y,  //more influence when theres more smoke - friction-like
-				1.25) //pow curve height - higher means the dissipation output is more forgiving in the middle range
-			* 10.0; //constant factor  */
+			* 250.0; //constant factor
 
-		//ASSIGNING OUR OUTPUT
-		//clamping ranges here too
-		correctedForwardVH.a = clamp(correctedForwardVH.a, MIN_HEAT, MAX_HEAT);
-		correctedForwardFS.x = correctedForwardVH.a; //copying to the other tex so we can sample just one in frag
-		correctedForwardFS.y = clamp(correctedForwardFS.y, 0, 1);
-	/*	correctedForwardVH.xyz = lerp( 
-			correctedForwardVH.xyz, //lerp from our velocity to environmental velocity by a damping factor
-			noiseSample.xyz * (10.0.xxx) - (2.50.xxx),
-			(_dTime * 5.00).xxx 
-		);*/
+
+		//WIND 
+		float3 noiseSample = 
+			NoiseTex.SampleLevel(samplerNoiseTex, 
+					//(p.xz / VOL_SIZE) + //modulate noise sample by pos in world
+					float2(_Time * 0.045, _Time * 0.023), //modulate noise sample by time
+				 0).xyz
+			- float3(0.5, 0.5, 0.5);
+		float3 wind = noiseSample * AMBIENT_WIND_SCALE;
+		correctedForwardVH.xyz += _dTime * //time scaled
+			(wind - correctedForwardVH.xyz) //direction + distance from current v to ambient v
+			* 0.05; //constant factor
 		
+		//clamping ranges
+		correctedForwardVH.xyz = min(correctedForwardVH.xyz, MAX_VELOCITY);
+		correctedForwardVH.a = clamp(correctedForwardVH.a, AMBIENT_HEAT, MAX_HEAT);
 
 		//aaaand write out to texture
-        //BUT AT SOME POINT WE SHOULD PROJECT A BIT FORWARD TOO BY VELOCITY OTHERWISE WE GETTIN NOWHERES - how do tho
         HeatSimVolumeNext[id.xyz] = correctedForwardVH;
-        FuelSmokeSimVolNext[id.xyz] = correctedForwardFS;
-
     }    
 } 
 
 //REGION -- INSERTION ------------------------------------------------------------------------------------------------
 
-#define INSERTION_SCALE 6
+#define INSERTION_SCALE 4
 
-#define P_INFLUENCE_DIST_MAX 2.50
-#define P_INFLUENCE_DIST_MIN 1.50
+#define P_INFLUENCE_DIST_MAX 1.0
+#define P_INFLUENCE_DIST_MIN 0.25
 float pInfluence(float distToP){
 	return 
 		(1 - //invert
@@ -169,7 +146,7 @@ void insert(uint3 id : SV_DispatchThreadID) {
 } 
 
 [numthreads(1,1,1)]
-void clearLogVol(uint3 id : SV_DispatchThreadID) {
+void clearLogVol(uint3 id : SV_DispatchThreadID) { 
 	LogInsertionVolumeRW[id.xyz] = 0.0;
 }
  
