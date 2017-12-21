@@ -23,7 +23,7 @@ public class InputManager : MonoBehaviour {
     public GUISkin guiSkin;
     public Color menuColor = Color.black;
 
-    void Start() {
+    void Awake() {
         _instance = this;
         // initialize cInput
         cInput.Init();

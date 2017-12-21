@@ -10,9 +10,6 @@ public class ObjectMover : MonoBehaviour {
 
     Plane grabPlane;
 
-    void Awake() {
-        grabPlane = new Plane(Vector3.forward, Vector3.zero);
-    }
 
     void grab(MoveableObject obj) {
         if (obj == null) return;
@@ -27,6 +24,8 @@ public class ObjectMover : MonoBehaviour {
     }
 
 	void Update () {
+        grabPlane = new Plane(transform.forward, Vector3.zero);
+
         var mouseRay = Camera.main.ScreenPointToRay(YuleCursor.position);
 
         if (!InputManager.Paused && (Input.GetMouseButtonDown(0) || cInput.GetKeyDown("Grab"))) {

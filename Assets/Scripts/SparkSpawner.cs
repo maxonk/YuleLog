@@ -29,8 +29,7 @@ public class SparkSpawner : MonoBehaviour {
 
     void spawn(Vector3 origin, Vector3 force) {
         if (Physics.CheckSphere(origin, 0.05f)) return;
-        var spark = Instantiate(protoSpark);
-        spark.transform.position = origin;
+        var spark = Instantiate(protoSpark, origin, Random.rotation);
         Rigidbody sparkPhysbody = spark.GetComponent<Rigidbody>();
         if(sparkPhysbody != null) {
             sparkPhysbody.AddForce(force);
