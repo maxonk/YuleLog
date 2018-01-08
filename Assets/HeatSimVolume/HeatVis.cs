@@ -107,10 +107,6 @@ public class HeatVis : MonoBehaviour {
     }
 
     public void submitPoints(Vector4[] newPoints) {
-        StartCoroutine(submitHeatPoints_coroutine(newPoints));
-    }
-        
-    IEnumerator submitHeatPoints_coroutine(Vector4[] newPoints) {
         int count = Mathf.Min(newPoints.Length, 256);
         for (int i = 0; i < count; i++) {
             //convert point to volume space
@@ -132,7 +128,6 @@ public class HeatVis : MonoBehaviour {
             newVelocityBuffer.SetData(velocities, 0, 0, count);
             heatSimComputeShader.Dispatch(_insertKernel, count, 1, 1);
         }
-        yield return null;
     }
 
     [ImageEffectOpaque]
@@ -178,7 +173,7 @@ public class HeatVis : MonoBehaviour {
     }
     
 
-    void FixedUpdate() {
+    void Update() {
         //if (transform.hasChanged) {  doesn't account for when screen parameters change...
         OnFrustumMoved();
 
@@ -190,7 +185,7 @@ public class HeatVis : MonoBehaviour {
         }
 
         heatSimComputeShader.SetFloat("_Time", Time.time);
-        heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
+        heatSimComputeShader.SetFloat("_dTime", Time.deltaTime);
 
         //SIMULATE
         if (doSetTex) {
@@ -201,7 +196,7 @@ public class HeatVis : MonoBehaviour {
         }
 
         if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, k_VolSize, k_VolSize, k_VolSize);
-        if (doClear) heatSimComputeShader.Dispatch(_clearKernel, k_VolSize, k_VolSize, k_VolSize);
+       // if (doClear) heatSimComputeShader.Dispatch(_clearKernel, k_VolSize, k_VolSize, k_VolSize);
 
         vol12toggle = !vol12toggle;
     }

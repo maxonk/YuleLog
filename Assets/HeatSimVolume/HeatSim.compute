@@ -96,8 +96,8 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 
 #define INSERTION_SCALE 4
 
-#define P_INFLUENCE_DIST_MAX 1.0
-#define P_INFLUENCE_DIST_MIN 0.25
+#define P_INFLUENCE_DIST_MAX 1.25
+#define P_INFLUENCE_DIST_MIN 0.4
 float pInfluence(float distToP){
 	return 
 		(1 - //invert

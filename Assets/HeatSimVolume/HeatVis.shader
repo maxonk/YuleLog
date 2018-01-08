@@ -66,7 +66,6 @@
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
-				float4 color = tex2D(_MainTex, UnityStereoScreenSpaceUVAdjust(i.uv, _MainTex_ST));
 
 				float visibleDepth = Linear01Depth(tex2D(_CameraDepthTexture, i.uv));
 
@@ -90,6 +89,8 @@
 								
 				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(heat - 0.075), 1.5), 0.25));
 							 
+				float4 color = tex2D(_MainTex, UnityStereoScreenSpaceUVAdjust(i.uv, _MainTex_ST));
+
 				return color + fireColor;
 				
 			}
