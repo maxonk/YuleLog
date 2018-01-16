@@ -173,26 +173,28 @@ public class HeatVis : MonoBehaviour {
     }
     
 
-    void Update() {
+    void FixedUpdate() {
         //if (transform.hasChanged) {  doesn't account for when screen parameters change...
         OnFrustumMoved();
 
+        /*
         if (Input.GetKeyDown(KeyCode.F)) {
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol1);
             heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
             heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol2);
             heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
         }
+        */
 
         heatSimComputeShader.SetFloat("_Time", Time.time);
-        heatSimComputeShader.SetFloat("_dTime", Time.deltaTime);
+        heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
 
         //SIMULATE
         if (doSetTex) {
             heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeNext", vol12toggle ? velocityHeatSimVol1 : velocityHeatSimVol2);
             heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
 
-            Shader.SetGlobalTexture("_HeatSimVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
+            Shader.SetGlobalTexture("_VelocityHeatVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
         }
 
         if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, k_VolSize, k_VolSize, k_VolSize);

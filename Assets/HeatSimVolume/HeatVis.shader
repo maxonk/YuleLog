@@ -52,8 +52,8 @@
 				return o;
 			}
 
-			#define STEPS_TO_FULL_HEAT 4.5
-			#define MIN_VISIBLE_HEAT 0.665
+			#define STEPS_TO_FULL_HEAT 6.5
+			#define MIN_VISIBLE_HEAT 0.65
 			#define MAX_HEAT 1.075
 					
 			float getHeat(float3 pos){
@@ -62,7 +62,7 @@
 					 * (min(min(pos.x, pos.y), pos.z) > 0.0); //clamp negative range
 
 				//ret = change in vis, change in visible heat
-				return pow(max(0, (heat - MIN_VISIBLE_HEAT) / (MAX_HEAT - MIN_VISIBLE_HEAT)), 1) * (1.0 / STEPS_TO_FULL_HEAT);
+				return max(0, (heat - MIN_VISIBLE_HEAT) / (MAX_HEAT - MIN_VISIBLE_HEAT)) / STEPS_TO_FULL_HEAT;
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {

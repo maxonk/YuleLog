@@ -68,9 +68,9 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 			pow(
 				saturate(correctedForwardVH.a - AMBIENT_HEAT / (MAX_HEAT - AMBIENT_HEAT)), 
 				4) //pow curve height - this is a constant suggested by nvidia
-			* 250.0; //constant factor
+			* 150.0; //constant factor
 
-
+			/*
 		//WIND 
 		float3 noiseSample = 
 			NoiseTex.SampleLevel(samplerNoiseTex, 
@@ -81,8 +81,8 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		float3 wind = noiseSample * AMBIENT_WIND_SCALE;
 		correctedForwardVH.xyz += _dTime * //time scaled
 			(wind - correctedForwardVH.xyz) //direction + distance from current v to ambient v
-			* 0.05; //constant factor
-		
+			* 0.001; //constant factor
+		*/
 		//clamping ranges
 		correctedForwardVH.xyz = min(correctedForwardVH.xyz, MAX_VELOCITY);
 		correctedForwardVH.a = clamp(correctedForwardVH.a, AMBIENT_HEAT, MAX_HEAT);
@@ -96,8 +96,8 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 
 #define INSERTION_SCALE 4
 
-#define P_INFLUENCE_DIST_MAX 1.25
-#define P_INFLUENCE_DIST_MIN 0.4
+#define P_INFLUENCE_DIST_MAX 1.5
+#define P_INFLUENCE_DIST_MIN 0.5
 float pInfluence(float distToP){
 	return 
 		(1 - //invert
