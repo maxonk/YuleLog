@@ -45,7 +45,7 @@
 			{
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
-				o.uv = float2(v.color.x, 0.25); //vertex color should define this
+				o.uv = float2(v.color.r, 0.25); //vertex color should define this
 				UNITY_TRANSFER_FOG(o,o.vertex);
 				return o;
 			}

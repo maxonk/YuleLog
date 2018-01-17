@@ -10,6 +10,7 @@ Texture2D<float4> NoiseTex;
 SamplerState samplerHeatSimVolumeLast, samplerNoiseTex;
 RWStructuredBuffer<float4> newPoints, newVelocity; //length 256 
 float _Time, _dTime;
+float4 Wind;
 
 #define VOL_SIZE 128.0
 #define INV_VOL_SIZE (1.0 / VOL_SIZE)
@@ -42,10 +43,15 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 
 		//BACKGROUND HEAT / MAX HEAT
 		velocityHeat.a = clamp(velocityHeat.a, AMBIENT_HEAT, MAX_HEAT);
+		
+		//WIND 
+		float3 v = velocityHeat.xyz + _dTime * float3(0.25, 1, 0.25) * //time scaled
+			Wind// - velocityHeat.xyz) //direction + distance from current v to target environmental v (wind)
+			* 1; //constant factor 
 
 		//ADVECTION
         //evolve forward to get the naive estimation
-		float3 samplePos = p - velocityHeat.xyz * _dTime * 1.0;
+		float3 samplePos = p - v * _dTime;
         float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
 
 		//move forward and then back and then see what the difference is - that's our error sampling position
@@ -56,7 +62,7 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		float4 correctedForwardVH =  
 			fwdEvolvedVelocityHeat - (
 				(Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos) //fwd evolved then back projected VH
-				- velocityHeat) / 2.0 //diff / 2 = correction
+				- float4(v, velocityHeat.a)) / 2.0 //diff / 2 = correction
 			); 
 			
 		//HEAT = UPWARD ACCELERATION  
@@ -70,19 +76,8 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 				4) //pow curve height - this is a constant suggested by nvidia
 			* 150.0; //constant factor
 
-			/*
-		//WIND 
-		float3 noiseSample = 
-			NoiseTex.SampleLevel(samplerNoiseTex, 
-					//(p.xz / VOL_SIZE) + //modulate noise sample by pos in world
-					float2(_Time * 0.045, _Time * 0.023), //modulate noise sample by time
-				 0).xyz
-			- float3(0.5, 0.5, 0.5);
-		float3 wind = noiseSample * AMBIENT_WIND_SCALE;
-		correctedForwardVH.xyz += _dTime * //time scaled
-			(wind - correctedForwardVH.xyz) //direction + distance from current v to ambient v
-			* 0.001; //constant factor
-		*/
+			
+		
 		//clamping ranges
 		correctedForwardVH.xyz = min(correctedForwardVH.xyz, MAX_VELOCITY);
 		correctedForwardVH.a = clamp(correctedForwardVH.a, AMBIENT_HEAT, MAX_HEAT);

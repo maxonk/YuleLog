@@ -5,6 +5,7 @@
 		_MainTex ("Texture", 2D) = "white" {}
 		_HeatTex ("Texture", 2D) = "white" {}
 		_SmokeHeatColorGrad ("Life/Heat Color Gradient", 2D) = "white" {}
+		_CloudNoise ("Texture", 2D) = "white" {}
 	}
 	SubShader
 	{
@@ -35,7 +36,7 @@
 			
 			sampler2D _CameraDepthTexture;
 
-			sampler2D _HeatTex, _SmokeHeatColorGrad;
+			sampler2D _HeatTex, _SmokeHeatColorGrad, _CloudNoise;
 
 			sampler3D _VelocityHeatVolume;
 
@@ -52,9 +53,15 @@
 				return o;
 			}
 
-			#define STEPS_TO_FULL_HEAT 6.5
-			#define MIN_VISIBLE_HEAT 0.65
+			#define STEPS_TO_FULL_HEAT 4.5
+			#define MIN_VISIBLE_HEAT 0.705
 			#define MAX_HEAT 1.075
+			#define TAU 1.57079632679
+
+			//curve = 0-->1 sin wave segment
+			float lightAttenCurve(float t){
+				return (sin(3.1415 * t - 1.5707) + 1) / 2;
+			}
 					
 			float getHeat(float3 pos){
 				float heat = tex3D(_VelocityHeatVolume, pos).a
@@ -64,13 +71,16 @@
 				//ret = change in vis, change in visible heat
 				return max(0, (heat - MIN_VISIBLE_HEAT) / (MAX_HEAT - MIN_VISIBLE_HEAT)) / STEPS_TO_FULL_HEAT;
 			}
+
+
+			float getHeat_noiseModulated(float3 pos, float3 noise){
+				return	getHeat(pos - noise);
+			}
 			
 			fixed4 frag (v2f i) : SV_Target {
 
 				float visibleDepth = Linear01Depth(tex2D(_CameraDepthTexture, i.uv));
-
-		//		return visibleDepth.xxxx;
-
+				
 				float3 farXY = 
 					lerp(
 						lerp(_FrustumFarBottomLeft, _FrustumFarBottomRight, i.uv.x),  //far bottom x
@@ -79,9 +89,15 @@
 				
 				float heat = 0.0;
 
+
+				//noise											tightness		    speed						magnitude
+				float2 ncoords = i.uv.xy;// + float2(visibleDepth * 0.1, 0);
+				float3 noise =	tex2D(_CloudNoise,	ncoords   * float2(3, 0.51) +	float2(_Time.g / 5, 0))	 *  0.01 - 0.005; // large grain, 
+					   noise += tex2D(_CloudNoise,	ncoords  *	float2(5, 0.88) +	float2(_Time.g / 2, 0))	 *  0.008 - 0.004;
+
 				for (float z = 0.0; z < 1.0; z += 0.00390625) { //0.00390625 = 1 / 256
 					float pastOurDepth01 = step(z, visibleDepth);
-					heat += getHeat(lerp(_VolSpaceCamPos, farXY, z)) //lerp to find position (consider getting a normalized dir and incrementing it instead..)
+					heat += getHeat_noiseModulated(lerp(_VolSpaceCamPos, farXY, z), noise) //lerp to find position (consider getting a normalized dir and incrementing it instead..)
 								* pastOurDepth01.xxx; //1 if visibleDepth > z, 0 otherwise
 				}
 				float pctThru = fmod(visibleDepth, 0.00390625) / 0.00390625; //add remainder

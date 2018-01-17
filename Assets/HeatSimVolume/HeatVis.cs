@@ -22,7 +22,9 @@ public class HeatVis : MonoBehaviour {
             return _camera;
         }
     }
-    
+
+    [SerializeField] Transform wind;
+
     [SerializeField] ComputeShader heatSimComputeShader;
     [SerializeField] Material visualizationMaterial;
 
@@ -171,7 +173,7 @@ public class HeatVis : MonoBehaviour {
         volSpaceCamPos.z = (transform.position.z + 1f) * 0.5f;
         Shader.SetGlobalVector("_VolSpaceCamPos", volSpaceCamPos);
     }
-    
+
 
     void FixedUpdate() {
         //if (transform.hasChanged) {  doesn't account for when screen parameters change...
@@ -188,6 +190,7 @@ public class HeatVis : MonoBehaviour {
 
         heatSimComputeShader.SetFloat("_Time", Time.time);
         heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
+        heatSimComputeShader.SetVector("Wind", wind.position);
 
         //SIMULATE
         if (doSetTex) {
