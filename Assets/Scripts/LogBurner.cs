@@ -49,12 +49,11 @@ public class LogBurner : MonoBehaviour, HeatSource {
     IEnumerator generateHeatPoints_coroutine() {
         Vector4[] heatPoints = new Vector4[burnSimMap.Length];
         for (int i = 0; i < heatPoints.Length; i++) heatPoints[i] = new Vector4();
-       // float xInfluence, yInfluence;
         while (isActiveAndEnabled) {
             for(int i = 0; i < burnSimMap.Length; i++) {
                 var node = burnSimMap[i];                
                 heatPoints[i] = transform.TransformPoint(burnSimMap[i].position);
-                heatPoints[i].w = burnSimMap[i].heat;
+                heatPoints[i].w = burnSimMap[i].heat * heatScaleModifier * 0.1f;
             }
             HeatVis.SubmitHeatPoints(heatPoints);
             yield return null;

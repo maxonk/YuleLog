@@ -53,8 +53,8 @@
 				return o;
 			}
 
-			#define STEPS_TO_FULL_HEAT 4.5
-			#define MIN_VISIBLE_HEAT 0.705
+			#define STEPS_TO_FULL_HEAT 1.8
+			#define MIN_VISIBLE_HEAT 0.675
 			#define MAX_HEAT 1.075
 			#define TAU 1.57079632679
 
@@ -89,21 +89,28 @@
 				
 				float heat = 0.0;
 
-
-				//noise											tightness		    speed						magnitude
+				//-------------------------------------------------------------------------------------------------------------
+				//NOISE											tightness		    speed						magnitude
 				float2 ncoords = i.uv.xy;// + float2(visibleDepth * 0.1, 0);
 				float3 noise =	tex2D(_CloudNoise,	ncoords   * float2(3, 0.51) +	float2(_Time.g / 5, 0))	 *  0.01 - 0.005; // large grain, 
 					   noise += tex2D(_CloudNoise,	ncoords  *	float2(5, 0.88) +	float2(_Time.g / 2, 0))	 *  0.008 - 0.004;
 
+				//---------------------------------------------------------------------------------------------------
+
+				//------------------------------------------------------------------------------SAMPLE VOLUME
 				for (float z = 0.0; z < 1.0; z += 0.00390625) { //0.00390625 = 1 / 256
 					float pastOurDepth01 = step(z, visibleDepth);
 					heat += getHeat_noiseModulated(lerp(_VolSpaceCamPos, farXY, z), noise) //lerp to find position (consider getting a normalized dir and incrementing it instead..)
-								* pastOurDepth01.xxx; //1 if visibleDepth > z, 0 otherwise
+								* pastOurDepth01.xxx //1 if visibleDepth > z, 0 otherwise
+								* (1 - heat); //reduce influence to blur
 				}
 				float pctThru = fmod(visibleDepth, 0.00390625) / 0.00390625; //add remainder
-				heat += getHeat(lerp(_VolSpaceCamPos, farXY, visibleDepth)) * pctThru; 
-								
-				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(pow(saturate(heat - 0.075), 1.5), 0.25));
+				heat += getHeat_noiseModulated(lerp(_VolSpaceCamPos, farXY, visibleDepth), noise) * pctThru * (1 - heat); 
+				//----------------------------------------------------------------------------------------------		
+
+				heat = lightAttenCurve(heat);
+						
+				float4 fireColor = tex2D(_SmokeHeatColorGrad, float2(saturate(heat), 0.25));
 							 
 				float4 color = tex2D(_MainTex, UnityStereoScreenSpaceUVAdjust(i.uv, _MainTex_ST));
 

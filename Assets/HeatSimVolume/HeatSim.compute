@@ -49,7 +49,7 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 			Wind// - velocityHeat.xyz) //direction + distance from current v to target environmental v (wind)
 			* 1; //constant factor 
 
-		//ADVECTION
+		//-------------------------------------------------------------------------ADVECTION
         //evolve forward to get the naive estimation
 		float3 samplePos = p - v * _dTime;
         float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
@@ -64,6 +64,7 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 				(Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos) //fwd evolved then back projected VH
 				- float4(v, velocityHeat.a)) / 2.0 //diff / 2 = correction
 			); 
+		//-------------------------------------------------------------------------------------
 			
 		//HEAT = UPWARD ACCELERATION  
 		correctedForwardVH.y += _dTime * //time scaled  
@@ -89,10 +90,10 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 
 //REGION -- INSERTION ------------------------------------------------------------------------------------------------
 
-#define INSERTION_SCALE 4
+#define INSERTION_SCALE 3
 
-#define P_INFLUENCE_DIST_MAX 1.5
-#define P_INFLUENCE_DIST_MIN 0.5
+#define P_INFLUENCE_DIST_MAX 0.8
+#define P_INFLUENCE_DIST_MIN 0.1
 float pInfluence(float distToP){
 	return 
 		(1 - //invert

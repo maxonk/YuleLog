@@ -24,6 +24,8 @@ public class HeatVis : MonoBehaviour {
     }
 
     [SerializeField] Transform wind;
+    [SerializeField] float simUpdateRate;
+    [SerializeField] [Range(1, 25)] int computesPerRate = 2;
 
     [SerializeField] ComputeShader heatSimComputeShader;
     [SerializeField] Material visualizationMaterial;
@@ -102,6 +104,8 @@ public class HeatVis : MonoBehaviour {
         heatSimComputeShader.SetTexture(_clearKernel, "LogInsertionVolumeRW", logInsertionVolume);
 
         camera.depthTextureMode = DepthTextureMode.Depth;
+
+        StartCoroutine(RunFireSim());
     }
     
     public static void SubmitHeatPoints(Vector4[] newPoints) {
@@ -175,35 +179,34 @@ public class HeatVis : MonoBehaviour {
     }
 
 
-    void FixedUpdate() {
-        //if (transform.hasChanged) {  doesn't account for when screen parameters change...
-        OnFrustumMoved();
+    IEnumerator RunFireSim() {
+        while (isActiveAndEnabled)
+        {
+            for (int i = 0; i < computesPerRate; i++)
+            {
+                //if (transform.hasChanged) {  doesn't account for when screen parameters change...
+                OnFrustumMoved();
 
-        /*
-        if (Input.GetKeyDown(KeyCode.F)) {
-            heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol1);
-            heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
-            heatSimComputeShader.SetTexture(_testDataKernel, "HeatSimVolume", velocityHeatSimVol2);
-            heatSimComputeShader.Dispatch(_testDataKernel, k_VolSize, 1, k_VolSize);
+                heatSimComputeShader.SetFloat("_Time", Time.time);
+                heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
+                heatSimComputeShader.SetVector("Wind", wind.position);
+
+                //SIMULATE
+                if (doSetTex)
+                {
+                    heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeNext", vol12toggle ? velocityHeatSimVol1 : velocityHeatSimVol2);
+                    heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
+
+                    Shader.SetGlobalTexture("_VelocityHeatVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
+                }
+
+                if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, k_VolSize, k_VolSize, k_VolSize);
+
+                vol12toggle = !vol12toggle;
+
+                yield return new WaitForSecondsRealtime(simUpdateRate);
+            }
         }
-        */
-
-        heatSimComputeShader.SetFloat("_Time", Time.time);
-        heatSimComputeShader.SetFloat("_dTime", Time.fixedDeltaTime);
-        heatSimComputeShader.SetVector("Wind", wind.position);
-
-        //SIMULATE
-        if (doSetTex) {
-            heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeNext", vol12toggle ? velocityHeatSimVol1 : velocityHeatSimVol2);
-            heatSimComputeShader.SetTexture(_simulateKernel, "HeatSimVolumeLast", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
-
-            Shader.SetGlobalTexture("_VelocityHeatVolume", vol12toggle ? velocityHeatSimVol2 : velocityHeatSimVol1);
-        }
-
-        if (doSimulate) heatSimComputeShader.Dispatch(_simulateKernel, k_VolSize, k_VolSize, k_VolSize);
-       // if (doClear) heatSimComputeShader.Dispatch(_clearKernel, k_VolSize, k_VolSize, k_VolSize);
-
-        vol12toggle = !vol12toggle;
     }
     
     private void OnDisable() {
