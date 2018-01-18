@@ -421,3 +421,8 @@ Cmd: compileComputeKernel
   error: 1 plat 4 at HeatSim.compute(48): implicit truncation of vector type
   api=4 insize=5564 outsize=4281 ok=1
 Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=6554 outsize=6562 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(36): undeclared identifier 'velocityHeat'
+  api=4 insize=6562 outsize=0 ok=0

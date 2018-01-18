@@ -19,6 +19,26 @@ float4 Sample(Texture3D<float4> tex, SamplerState ss, float3 p) {
 	return tex.SampleLevel(ss, saturate(p * float3(INV_VOL_SIZE, INV_VOL_SIZE, INV_VOL_SIZE)), 0);
 }
 
+float4 Advect(float3 p, float4 vh){
+    //evolve forward to get the naive estimation  
+	float3 samplePos = p - vh.xyz * _dTime;
+    float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
+
+	//move forward and then back and then see what the difference is - that's our error sampling position
+	samplePos = (samplePos // fast forward 
+						+ fwdEvolvedVelocityHeat.xyz * _dTime * 1.0); // rewind
+		
+	float4 fwdEvolvedBackProjectedVH = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
+
+	//the error is accumulated over 2 timesteps so cut it in half and that's our correction
+	vh =  
+		fwdEvolvedVelocityHeat - (
+			(fwdEvolvedBackProjectedVH //fwd evolved then back projected VH
+			- vh) / 2.0 //diff / 2 = correction
+		); 
+	return vh;
+}
+
 #define AMBIENT_HEAT 0.4
 #define MAX_HEAT 1.075
 #define MAX_VELOCITY float3(60, 60, 60)
@@ -44,47 +64,25 @@ void simulate(uint3 id : SV_DispatchThreadID) {
 		//BACKGROUND HEAT / MAX HEAT
 		velocityHeat.a = clamp(velocityHeat.a, AMBIENT_HEAT, MAX_HEAT);
 		
-		//WIND 
-		float3 v = velocityHeat.xyz + _dTime * float3(0.25, 1, 0.25) * //time scaled
-			Wind// - velocityHeat.xyz) //direction + distance from current v to target environmental v (wind)
-			* 1; //constant factor 
+		velocityHeat = Advect(p, velocityHeat);
 
-		//-------------------------------------------------------------------------ADVECTION
-        //evolve forward to get the naive estimation
-		float3 samplePos = p - v * _dTime;
-        float4 fwdEvolvedVelocityHeat = Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos);
-
-		//move forward and then back and then see what the difference is - that's our error sampling position
-		samplePos = (samplePos // fast forward 
-							+ fwdEvolvedVelocityHeat.xyz * _dTime * 1.0); // rewind
-		
-		//the error is accumulated over 2 timesteps so cut it in half and that's our correction
-		float4 correctedForwardVH =  
-			fwdEvolvedVelocityHeat - (
-				(Sample(HeatSimVolumeLast, samplerHeatSimVolumeLast, samplePos) //fwd evolved then back projected VH
-				- float4(v, velocityHeat.a)) / 2.0 //diff / 2 = correction
-			); 
-		//-------------------------------------------------------------------------------------
-			
 		//HEAT = UPWARD ACCELERATION  
-		correctedForwardVH.y += _dTime * //time scaled  
-			((correctedForwardVH.a - AMBIENT_HEAT) * 45.0); /// (correctedForwardFS.y)  // force here is heat * constant
+		velocityHeat.y += _dTime * //time scaled  
+			((velocityHeat.a - AMBIENT_HEAT) * 45.0); /// (correctedForwardFS.y)  // force here is heat * constant
 					
 		//COOLING
-		correctedForwardVH.a -= _dTime * //time scaled  
+		velocityHeat.a -= _dTime * //time scaled  
 			pow(
-				saturate(correctedForwardVH.a - AMBIENT_HEAT / (MAX_HEAT - AMBIENT_HEAT)), 
+				saturate(velocityHeat.a - AMBIENT_HEAT / (MAX_HEAT - AMBIENT_HEAT)), 
 				4) //pow curve height - this is a constant suggested by nvidia
 			* 150.0; //constant factor
-
-			
-		
+					
 		//clamping ranges
-		correctedForwardVH.xyz = min(correctedForwardVH.xyz, MAX_VELOCITY);
-		correctedForwardVH.a = clamp(correctedForwardVH.a, AMBIENT_HEAT, MAX_HEAT);
+		velocityHeat.xyz = min(velocityHeat.xyz, MAX_VELOCITY);
+		velocityHeat.a = clamp(velocityHeat.a, AMBIENT_HEAT, MAX_HEAT);
 
 		//aaaand write out to texture
-        HeatSimVolumeNext[id.xyz] = correctedForwardVH;
+        HeatSimVolumeNext[id.xyz] = velocityHeat;
     }    
 } 
 
