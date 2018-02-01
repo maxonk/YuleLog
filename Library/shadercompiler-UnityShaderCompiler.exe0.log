@@ -426,3 +426,158 @@ Cmd: preprocessCompute
 Cmd: compileComputeKernel
   error: 2 plat 4 at HeatSim.compute(36): undeclared identifier 'velocityHeat'
   api=4 insize=6562 outsize=0 ok=0
+Cmd: preprocessCompute
+  insize=6563 outsize=6571 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=6571 outsize=1697 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=6542 outsize=6550 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=6550 outsize=1697 ok=1
+Cmd: preprocessCompute
+  insize=5430 outsize=5438 ok=1
+Cmd: preprocessCompute
+  insize=5440 outsize=5448 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5448 outsize=4281 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5403 outsize=5411 ok=1
+Cmd: compileComputeKernel
+  error: 2 plat 4 at HeatSim.compute(83): undeclared identifier 'correctedForwardVH'
+  api=4 insize=5411 outsize=0 ok=0
+Cmd: preprocessCompute
+  insize=5369 outsize=5377 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5377 outsize=4281 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5446 outsize=5454 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5512 outsize=5520 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5613 outsize=5621 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5613 outsize=5621 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5621 outsize=297 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5614 outsize=5622 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at HeatSim.compute(72): loop only executes for 1 iteration(s), forcing loop to unroll
+  api=4 insize=5622 outsize=1697 ok=1
+Cmd: preprocessCompute
+  insize=5615 outsize=5623 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at HeatSim.compute(72): loop only executes for 1 iteration(s), forcing loop to unroll
+  api=4 insize=5623 outsize=1697 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5616 outsize=5624 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5624 outsize=1933 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5432 outsize=5440 ok=1
+Cmd: preprocessCompute
+  insize=5292 outsize=5300 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5300 outsize=297 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5355 outsize=5363 ok=1
+Cmd: compileComputeKernel
+  error: 1 plat 4 at HeatSim.compute(25): loop only executes for 1 iteration(s), forcing loop to unroll
+  api=4 insize=5363 outsize=1697 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5356 outsize=5364 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5364 outsize=1897 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5365 outsize=1917 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5358 outsize=5366 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5366 outsize=1917 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5365 outsize=1917 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5365 outsize=4281 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5358 outsize=5366 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5358 outsize=5366 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: initializeCompiler
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5365 outsize=4281 ok=1
+Cmd: initializeCompiler
+Cmd: initializeCompiler
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=4099 outsize=650 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=4099 outsize=2862 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=4099 outsize=650 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=4099 outsize=2862 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=4099 outsize=650 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=4099 outsize=2862 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=4099 outsize=650 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=4099 outsize=2862 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=4099 outsize=650 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=4099 outsize=2862 kw= pd=UNITY_ENABLE_REFLECTION_BUFFERS UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BOX_PROJECTION UNITY_SPECCUBE_BLENDING UNITY_ENABLE_DETAIL_NORMALMAP SHADER_API_DESKTOP UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_LIGHTMAP_RGBM_ENCODING ok=1
+Cmd: preprocess
+  insize=4034 outsize=375 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5357 outsize=5365 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5365 outsize=685 ok=1
+Cmd: initializeCompiler
+Cmd: preprocessCompute
+  insize=5200 outsize=5208 ok=1
+Cmd: compileComputeKernel
+  api=4 insize=5208 outsize=297 ok=1
+Cmd: initializeCompiler
+Cmd: initializeCompiler
+Cmd: initializeCompiler
