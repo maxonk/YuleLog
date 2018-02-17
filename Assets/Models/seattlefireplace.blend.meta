@@ -4,12 +4,22 @@ ModelImporter:
   serializedVersion: 22
   fileIDToRecycleName:
     100000: //RootNode
+    100002: fireplace
+    100004: ground
     400000: //RootNode
+    400002: fireplace
+    400004: ground
     2100000: Material
     2100002: Material_001
     2300000: //RootNode
+    2300002: fireplace
+    2300004: ground
     3300000: //RootNode
+    3300002: fireplace
+    3300004: ground
     4300000: Cube
+    4300002: ground
+    4300004: fireplace
     7400000: Default Take
     9500000: //RootNode
   externalObjects: {}
@@ -64,7 +74,7 @@ ModelImporter:
     secondaryUVPackMargin: 4
     useFileScale: 1
   tangentSpace:
-    normalSmoothAngle: 3
+    normalSmoothAngle: 50
     normalImportMode: 1
     tangentImportMode: 3
     normalCalculationMode: 4
